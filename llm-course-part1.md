@@ -1,0 +1,1324 @@
+# 🚀 Основи LLM та AI-агентів для розробників
+
+## Повний практичний курс | Версія 2026
+
+---
+
+# 📚 Зміст
+
+## Частина 1
+- [🏃 Quick Start — Перший запуск за 5 хвилин](#-quick-start--перший-запуск-за-5-хвилин)
+- [Модуль 1: Базові концепції](#модуль-1-базові-концепції)
+- [Модуль 2: Chat API на практиці](#модуль-2-chat-api-на-практиці)
+- [Модуль 2.5: Типові помилки та їх вирішення](#модуль-25-типові-помилки-та-їх-вирішення)
+
+## Частина 2
+- Модуль 3: Function Calling
+- Модуль 4: AI Агенти
+- Real-World Use Cases
+
+## Частина 3
+- Модуль 5: MCP (Model Context Protocol)
+- Модуль 6: RAG (Retrieval Augmented Generation)
+- Модуль 7: Безпека LLM-застосунків
+
+## Частина 4
+- Модуль 8: Production та оптимізація
+- Модуль 9: Практичні завдання
+- Debugging LLM Applications
+- FAQ, Глосарій, Чеклісти
+
+---
+
+# 🏃 Quick Start — Перший запуск за 5 хвилин
+
+> 💡 **Мета:** Запустити перший робочий приклад і отримати відповідь від LLM за 5 хвилин.
+
+## Крок 1: Встановлення (1 хвилина)
+
+```bash
+# Створіть новий проект
+mkdir my-first-llm && cd my-first-llm
+npm init -y
+
+# Встановіть Vercel AI SDK (найзручніший спосіб працювати з LLM)
+npm install ai @ai-sdk/openai @ai-sdk/anthropic zod
+npm install -D typescript tsx @types/node
+
+# Ініціалізуйте TypeScript
+npx tsc --init
+```
+
+## Крок 2: Отримання API ключа (2 хвилини)
+
+Оберіть один із провайдерів:
+
+| Провайдер | Реєстрація | Безкоштовний tier |
+|-----------|------------|-------------------|
+| **OpenAI** | [platform.openai.com](https://platform.openai.com) | $5 кредитів для нових акаунтів |
+| **Anthropic** | [console.anthropic.com](https://console.anthropic.com) | $5 кредитів для нових акаунтів |
+| **Google AI** | [aistudio.google.com](https://aistudio.google.com) | Безкоштовно до 60 запитів/хв |
+
+```bash
+# Створіть файл .env
+echo "OPENAI_API_KEY=sk-your-key-here" > .env
+# або
+echo "ANTHROPIC_API_KEY=sk-ant-your-key-here" > .env
+```
+
+## Крок 3: Hello World (2 хвилини)
+
+Створіть файл `hello.ts`:
+
+```typescript
+// hello.ts
+import { generateText } from 'ai';
+import { openai } from '@ai-sdk/openai';
+// або: import { anthropic } from '@ai-sdk/anthropic';
+
+async function main() {
+  console.log('🤖 Запитуємо LLM...\n');
+  
+  const { text, usage } = await generateText({
+    model: openai('gpt-4o-mini'), // або anthropic('claude-3-5-haiku-20241022')
+    prompt: 'Привіт! Поясни що таке LLM одним реченням українською.',
+  });
+  
+  console.log('📝 Відповідь:', text);
+  console.log('\n📊 Використано токенів:', usage);
+}
+
+main().catch(console.error);
+```
+
+Запустіть:
+
+```bash
+npx tsx hello.ts
+```
+
+## 📊 Очікуваний вивід
+
+```
+🤖 Запитуємо LLM...
+
+📝 Відповідь: LLM (Large Language Model) — це штучний інтелект, 
+навчений на величезних обсягах тексту, який може генерувати, 
+розуміти та перетворювати людську мову.
+
+📊 Використано токенів: { promptTokens: 24, completionTokens: 47, totalTokens: 71 }
+```
+
+## ❌ Troubleshooting: Типові помилки при запуску
+
+### Помилка: `OPENAI_API_KEY is not set`
+
+```
+Error: OPENAI_API_KEY is not set
+```
+
+**Рішення:**
+```bash
+# Перевірте що .env створено
+cat .env
+
+# Для Windows PowerShell
+$env:OPENAI_API_KEY="sk-your-key"
+
+# Для Linux/Mac
+export OPENAI_API_KEY="sk-your-key"
+
+# Або встановіть dotenv
+npm install dotenv
+```
+
+```typescript
+// Додайте на початку файлу
+import 'dotenv/config';
+```
+
+### Помилка: `401 Unauthorized`
+
+```
+Error: 401 Incorrect API key provided
+```
+
+**Причина:** Неправильний або прострочений API ключ.
+
+**Рішення:**
+1. Перевірте ключ у консолі провайдера
+2. Переконайтесь що немає зайвих пробілів
+3. Перевірте чи є баланс на акаунті
+
+### Помилка: `429 Rate limit exceeded`
+
+```
+Error: 429 Rate limit exceeded
+```
+
+**Причина:** Занадто багато запитів.
+
+**Рішення:** Почекайте 60 секунд або використайте інший API ключ.
+
+### Помилка: `ENOTFOUND api.openai.com`
+
+```
+Error: getaddrinfo ENOTFOUND api.openai.com
+```
+
+**Причина:** Проблеми з мережею або VPN.
+
+**Рішення:** Перевірте інтернет-з'єднання або вимкніть/увімкніть VPN.
+
+---
+
+## ✅ Чекліст Quick Start
+
+- [ ] Node.js v18+ встановлено
+- [ ] Проект створено
+- [ ] AI SDK встановлено
+- [ ] API ключ отримано та збережено в `.env`
+- [ ] Hello World працює
+- [ ] Бачу кількість використаних токенів
+
+> 🎉 **Вітаю!** Ви щойно зробили свій перший API запит до LLM. Тепер переходимо до теорії.
+
+---
+
+# Модуль 1: Базові концепції
+
+> 🎯 **Мета модуля:** Зрозуміти як працюють LLM на концептуальному рівні та навчитись оцінювати вартість запитів.
+
+## 1.1 Що таке LLM і чому це важливо для розробників?
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    LLM (Large Language Model)               │
+│                                                             │
+│   ┌─────────┐      ┌──────────────┐      ┌─────────┐       │
+│   │  Input  │ ───▶ │   Neural     │ ───▶ │ Output  │       │
+│   │ (Tokens)│      │   Network    │      │ (Tokens)│       │
+│   └─────────┘      │ (Transformer)│      └─────────┘       │
+│                    └──────────────┘                         │
+│                                                             │
+│   📊 Параметри: 8B - 1.8T                                   │
+│   📚 Навчено на: трильйонах токенів тексту                 │
+│   🎯 Задача: передбачити наступний токен                   │
+└─────────────────────────────────────────────────────────────┘
+```
+
+**Чому LLM важливі для розробників у 2026:**
+
+| До LLM | З LLM |
+|--------|-------|
+| Писати regex для парсингу | `"Витягни email з тексту"` |
+| Створювати правила вручну | `"Класифікуй скаргу клієнта"` |
+| Наймати команду перекладачів | `"Переклади на 5 мов"` |
+| Тижні на аналіз документів | Хвилини з RAG |
+
+## 1.2 Токени: одиниця вимірювання LLM
+
+> 💡 **Токен** — це частина слова або символу. Приблизно 1 токен ≈ 4 символи англійською або ≈ 1-2 символи українською.
+
+### Візуалізація токенізації
+
+**Англійська мова:**
+```
+"Hello, world!" → ["Hello", ",", " world", "!"] → 4 токени
+```
+
+**Українська мова** (більше токенів через кирилицю):
+```
+"Привіт, світе!" → ["Прив", "іт", ",", " св", "іт", "е", "!"] → 7 токенів
+```
+
+### 🧪 Практичний експеримент: порівняння мов
+
+```typescript
+// token-comparison.ts
+import { openai } from '@ai-sdk/openai';
+import { generateText } from 'ai';
+
+async function compareTokens() {
+  const english = "The quick brown fox jumps over the lazy dog.";
+  const ukrainian = "Жовтий блискучий лис перестрибує через лінивого собаку.";
+  
+  // Функція для підрахунку (приблизно)
+  const estimateTokens = (text: string) => Math.ceil(text.length / 3);
+  
+  console.log('📊 Порівняння токенізації:\n');
+  console.log(`🇬🇧 English: "${english}"`);
+  console.log(`   Символів: ${english.length}, ~Токенів: ${estimateTokens(english)}`);
+  console.log();
+  console.log(`🇺🇦 Ukrainian: "${ukrainian}"`);
+  console.log(`   Символів: ${ukrainian.length}, ~Токенів: ${estimateTokens(ukrainian)}`);
+  console.log();
+  console.log('💡 Висновок: українська коштує ~40-60% дорожче за англійську');
+}
+
+compareTokens();
+```
+
+**Вивід:**
+```
+📊 Порівняння токенізації:
+
+🇬🇧 English: "The quick brown fox jumps over the lazy dog."
+   Символів: 44, ~Токенів: 15
+
+🇺🇦 Ukrainian: "Жовтий блискучий лис перестрибує через лінивого собаку."
+   Символів: 56, ~Токенів: 19
+
+💡 Висновок: українська коштує ~40-60% дорожче за англійську
+```
+
+### 📊 Таблиця цін основних моделей (станом на 2026)
+
+| Модель | Input (за 1M токенів) | Output (за 1M токенів) | Context Window |
+|--------|----------------------|------------------------|----------------|
+| **GPT-4o** | $2.50 | $10.00 | 128K |
+| **GPT-4o-mini** | $0.15 | $0.60 | 128K |
+| **Claude 3.5 Sonnet** | $3.00 | $15.00 | 200K |
+| **Claude 3.5 Haiku** | $0.80 | $4.00 | 200K |
+| **Gemini 1.5 Pro** | $1.25 | $5.00 | 2M |
+| **Gemini 1.5 Flash** | $0.075 | $0.30 | 1M |
+
+> ⚠️ **Порада:** Для прототипів використовуйте дешеві моделі (GPT-4o-mini, Haiku, Flash). Переходьте на потужніші тільки коли потрібна якість.
+
+## 1.3 Context Window: пам'ять моделі
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                     Context Window (128K tokens)                 │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                  │
+│  ┌──────────────────┐                                           │
+│  │  System Prompt   │ ← Інструкції для моделі (500-2000 токенів)│
+│  │  (як поводитись) │                                           │
+│  └──────────────────┘                                           │
+│           │                                                      │
+│           ▼                                                      │
+│  ┌──────────────────┐                                           │
+│  │  Few-shot        │ ← Приклади бажаної поведінки (0-5000)     │
+│  │  Examples        │                                           │
+│  └──────────────────┘                                           │
+│           │                                                      │
+│           ▼                                                      │
+│  ┌──────────────────┐                                           │
+│  │  Retrieved       │ ← Документи з RAG (1000-50000 токенів)    │
+│  │  Documents       │                                           │
+│  └──────────────────┘                                           │
+│           │                                                      │
+│           ▼                                                      │
+│  ┌──────────────────┐                                           │
+│  │  Conversation    │ ← Історія чату (росте з часом)            │
+│  │  History         │                                           │
+│  └──────────────────┘                                           │
+│           │                                                      │
+│           ▼                                                      │
+│  ┌──────────────────┐                                           │
+│  │  Current User    │ ← Поточне питання користувача             │
+│  │  Message         │                                           │
+│  └──────────────────┘                                           │
+│                                                                  │
+│  ════════════════════════════════════════════════════════════   │
+│  ▲ УВАГА: Якщо сума перевищує context window → ПОМИЛКА!         │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### Коли context window стає проблемою?
+
+```typescript
+// Приклад: чат-бот, який "забуває" контекст
+const messages = [
+  { role: 'user', content: 'Мене звати Олександр' },
+  { role: 'assistant', content: 'Приємно познайомитись, Олександре!' },
+  // ... 500 повідомлень пізніше ...
+  { role: 'user', content: 'Як мене звати?' },
+  { role: 'assistant', content: 'Вибачте, я не знаю вашого імені.' } // 😱
+];
+```
+
+**Рішення:** Стратегії управління контекстом (див. Модуль 4: AI Агенти, секція Memory).
+
+## 1.4 Температура та інші параметри
+
+```
+Temperature: 0.0                    Temperature: 1.0
+     │                                   │
+     ▼                                   ▼
+┌─────────┐                        ┌─────────┐
+│Детерміно│                        │Креативно│
+│ваний    │                        │         │
+│         │                        │         │
+│"Столиця │                        │"Серце   │
+│ України │                        │ України │
+│ — Київ."│                        │ б'ється │
+│         │                        │ у Києві │
+│         │                        │ ..."    │
+└─────────┘                        └─────────┘
+   Факти                           Творчість
+```
+
+| Параметр | Що робить | Типове значення | Коли змінювати |
+|----------|-----------|-----------------|----------------|
+| `temperature` | Випадковість відповіді | 0.7 | 0 для фактів, 1+ для творчості |
+| `maxTokens` | Максимум токенів у відповіді | 1000-4000 | Залежно від задачі |
+| `topP` | Ядерна вибірка | 1.0 | Рідко змінюють |
+| `frequencyPenalty` | Штраф за повторення | 0 | 0.5+ якщо модель повторюється |
+| `presencePenalty` | Штраф за вже згадані теми | 0 | 0.5+ для різноманітності |
+
+### 🎯 Рекомендації по temperature
+
+```typescript
+// ❌ НЕПРАВИЛЬНО: temperature 1.0 для фактичних даних
+const { text } = await generateText({
+  model: openai('gpt-4o'),
+  temperature: 1.0, // Модель буде "фантазувати"
+  prompt: 'Яка столиця Японії?'
+});
+
+// ✅ ПРАВИЛЬНО: temperature 0 для фактів
+const { text } = await generateText({
+  model: openai('gpt-4o'),
+  temperature: 0,
+  prompt: 'Яка столиця Японії?'
+});
+
+// ✅ ПРАВИЛЬНО: temperature 0.8-1.0 для творчості
+const { text } = await generateText({
+  model: openai('gpt-4o'),
+  temperature: 0.9,
+  prompt: 'Напиши вірш про Київ'
+});
+```
+
+## 🤔 Перевір себе
+
+1. Чому українська мова "дорожча" за англійську при роботі з LLM?
+2. Що станеться, якщо сума токенів перевищить context window?
+3. Яку temperature ви б обрали для чат-бота служби підтримки?
+
+<details>
+<summary>📝 Відповіді</summary>
+
+1. Кирилиця токенізується менш ефективно — кожна літера часто стає окремим токеном, тоді як англійські слова зазвичай стискаються до 1-3 токенів.
+
+2. API поверне помилку `context_length_exceeded`. Потрібно або скоротити промпт, або використати модель з більшим контекстом.
+
+3. Temperature 0-0.3. Для підтримки важлива точність і передбачуваність, а не креативність.
+</details>
+
+---
+
+# Модуль 2: Chat API на практиці
+
+> 🎯 **Мета модуля:** Навчитись ефективно використовувати Chat API різних провайдерів через уніфікований інтерфейс Vercel AI SDK.
+
+## 2.1 Чому Vercel AI SDK?
+
+```
+┌───────────────────────────────────────────────────────────────┐
+│                    Без AI SDK (біль 😫)                       │
+├───────────────────────────────────────────────────────────────┤
+│                                                               │
+│   OpenAI API          Anthropic API        Google API         │
+│   ┌─────────┐         ┌─────────┐         ┌─────────┐        │
+│   │ format A│         │ format B│         │ format C│        │
+│   │ auth A  │         │ auth B  │         │ auth C  │        │
+│   │ errors A│         │ errors B│         │ errors C│        │
+│   └─────────┘         └─────────┘         └─────────┘        │
+│        │                   │                   │              │
+│        └───────────────────┼───────────────────┘              │
+│                            ▼                                  │
+│                   😫 Різний код для кожного                   │
+│                                                               │
+└───────────────────────────────────────────────────────────────┘
+
+┌───────────────────────────────────────────────────────────────┐
+│                   З AI SDK (радість 🎉)                       │
+├───────────────────────────────────────────────────────────────┤
+│                                                               │
+│   ┌─────────────────────────────────────────────────┐        │
+│   │              Vercel AI SDK                       │        │
+│   │         (один інтерфейс для всіх)               │        │
+│   └─────────────────────────────────────────────────┘        │
+│        │              │              │                        │
+│        ▼              ▼              ▼                        │
+│   ┌─────────┐   ┌─────────┐   ┌─────────┐                    │
+│   │ OpenAI  │   │Anthropic│   │ Google  │                    │
+│   └─────────┘   └─────────┘   └─────────┘                    │
+│                                                               │
+│   🎉 Один код → будь-який провайдер                          │
+│                                                               │
+└───────────────────────────────────────────────────────────────┘
+```
+
+### Встановлення провайдерів
+
+```bash
+# Основні провайдери
+npm install ai @ai-sdk/openai @ai-sdk/anthropic @ai-sdk/google
+
+# Опціонально: для локальних моделей
+npm install @ai-sdk/ollama
+```
+
+## 2.2 Основні функції AI SDK
+
+### generateText — проста генерація
+
+```typescript
+// generate-text-example.ts
+import { generateText } from 'ai';
+import { openai } from '@ai-sdk/openai';
+
+async function simpleGeneration() {
+  const { text, usage, finishReason } = await generateText({
+    model: openai('gpt-4o-mini'),
+    prompt: 'Поясни async/await у JavaScript для новачка',
+  });
+  
+  console.log('📝 Відповідь:\n', text);
+  console.log('\n📊 Статистика:', {
+    токенів_на_вхід: usage.promptTokens,
+    токенів_на_вихід: usage.completionTokens,
+    причина_завершення: finishReason
+  });
+}
+
+simpleGeneration();
+```
+
+**📊 Вивід консолі:**
+```
+📝 Відповідь:
+ async/await — це спосіб писати асинхронний код так, ніби він синхронний.
+
+Уяви, що ти замовляєш піцу:
+- Без async/await: "Зателефонуй, і поки чекаєш — стій біля телефону"
+- З async/await: "Зателефонуй, і йди робити свої справи. Тебе покличуть коли готово"
+
+```javascript
+// Без async/await (callback hell)
+fetch('/api/user')
+  .then(res => res.json())
+  .then(user => {
+    fetch(`/api/posts/${user.id}`)
+      .then(res => res.json())
+      .then(posts => console.log(posts))
+  });
+
+// З async/await (чисто і зрозуміло)
+async function getPosts() {
+  const res = await fetch('/api/user');
+  const user = await res.json();
+  const postsRes = await fetch(`/api/posts/${user.id}`);
+  const posts = await postsRes.json();
+  console.log(posts);
+}
+```
+
+📊 Статистика: { токенів_на_вхід: 18, токенів_на_вихід: 203, причина_завершення: 'stop' }
+```
+
+💡 **Коли використовувати:** Прості одноразові запити, генерація контенту, переклади.
+
+⚠️ **Підводні камені:**
+- Чекає повну відповідь — для довгих відповідей краще streamText
+- Немає retry по замовчуванню — додайте обробку помилок
+
+### streamText — стрімінг відповіді
+
+```typescript
+// stream-text-example.ts
+import { streamText } from 'ai';
+import { anthropic } from '@ai-sdk/anthropic';
+
+async function streamingGeneration() {
+  console.log('🤖 Модель думає...\n');
+  
+  const { textStream, usage } = streamText({
+    model: anthropic('claude-3-5-haiku-20241022'),
+    prompt: 'Розкажи коротку історію про програміста',
+  });
+
+  // Виводимо токен за токеном
+  process.stdout.write('📖 ');
+  for await (const chunk of textStream) {
+    process.stdout.write(chunk);
+  }
+  
+  console.log('\n\n📊 Використано токенів:', await usage);
+}
+
+streamingGeneration();
+```
+
+**📊 Вивід консолі (з'являється поступово):**
+```
+🤖 Модель думає...
+
+📖 Олег працював допізна. Знову баг у production.
+
+"Це неможливо," — думав він, дивлячись на логи.
+
+О третій ночі він знайшов проблему: хтось закомітив 
+`if (true === false)`. 
+
+Коміт був його. З минулої п'ятниці.
+
+Олег вимкнув комп'ютер і пішов спати.
+
+📊 Використано токенів: { promptTokens: 14, completionTokens: 89 }
+```
+
+💡 **Коли використовувати:** Чат-боти, інтерактивні інтерфейси, довгі відповіді.
+
+⚠️ **Підводні камені:**
+- `usage` — це Promise, потрібен `await`
+- У Next.js використовуйте `toDataStreamResponse()`
+
+### generateObject — структуровані дані
+
+```typescript
+// generate-object-example.ts
+import { generateObject } from 'ai';
+import { openai } from '@ai-sdk/openai';
+import { z } from 'zod';
+
+// Схема даних
+const ProductReview = z.object({
+  sentiment: z.enum(['positive', 'negative', 'neutral']),
+  score: z.number().min(1).max(10),
+  summary: z.string().max(100),
+  keywords: z.array(z.string()).max(5),
+  recommendation: z.boolean(),
+});
+
+async function analyzeReview() {
+  const review = `
+    Купив цей ноутбук місяць тому. Екран чудовий, батарея тримає 
+    весь день. Але клавіатура трохи незручна для довгого друку. 
+    Загалом задоволений покупкою, рекомендую для офісної роботи.
+  `;
+  
+  const { object, usage } = await generateObject({
+    model: openai('gpt-4o-mini'),
+    schema: ProductReview,
+    prompt: `Проаналізуй відгук про товар:\n\n${review}`,
+  });
+  
+  console.log('📊 Результат аналізу:\n', JSON.stringify(object, null, 2));
+  console.log('\n💰 Токенів:', usage.totalTokens);
+}
+
+analyzeReview();
+```
+
+**📊 Вивід консолі:**
+```json
+📊 Результат аналізу:
+{
+  "sentiment": "positive",
+  "score": 8,
+  "summary": "Чудовий ноутбук для офісної роботи з відмінним екраном та батареєю, незначні мінуси клавіатури",
+  "keywords": ["екран", "батарея", "клавіатура", "офісна робота"],
+  "recommendation": true
+}
+
+💰 Токенів: 156
+```
+
+💡 **Коли використовувати:**
+- Парсинг даних з тексту
+- Класифікація
+- Витягування entities
+- Валідація та структуризація user input
+
+⚠️ **Підводні камені:**
+- Модель може "галюцинувати" дані — завжди валідуйте критичні поля
+- Складні вкладені схеми збільшують кількість помилок
+
+## 2.3 Порівняння підходів до Structured Outputs
+
+| Підхід | Pros | Cons | Коли використовувати |
+|--------|------|------|---------------------|
+| **AI SDK `generateObject`** | Єдиний інтерфейс, Zod валідація, працює з усіма провайдерами | Не всі моделі підтримують native JSON mode | Універсальний вибір для проектів |
+| **OpenAI `response_format: json_schema`** | 100% гарантія структури, native підтримка | Тільки OpenAI, складніший синтаксис | Production з OpenAI, критична валідація |
+| **Anthropic tool_choice** | Надійно з Claude, гнучкі схеми | Потребує обгортки в "tool", більше токенів | Production з Anthropic |
+| **Промпт + JSON.parse** | Працює з будь-якою моделлю | Часто ламається, потребує retry | Швидке прототипування, legacy |
+
+### Приклад: один код → різні провайдери
+
+```typescript
+// universal-structured.ts
+import { generateObject } from 'ai';
+import { openai } from '@ai-sdk/openai';
+import { anthropic } from '@ai-sdk/anthropic';
+import { google } from '@ai-sdk/google';
+import { z } from 'zod';
+
+const schema = z.object({
+  city: z.string(),
+  country: z.string(),
+  population: z.number(),
+});
+
+// Один і той же код працює з різними провайдерами
+async function getCityInfo(provider: 'openai' | 'anthropic' | 'google') {
+  const models = {
+    openai: openai('gpt-4o-mini'),
+    anthropic: anthropic('claude-3-5-haiku-20241022'),
+    google: google('gemini-1.5-flash'),
+  };
+  
+  const { object } = await generateObject({
+    model: models[provider],
+    schema,
+    prompt: 'Інформація про Київ',
+  });
+  
+  return object;
+}
+
+// Використання
+const result = await getCityInfo('openai');
+console.log(result); // { city: "Kyiv", country: "Ukraine", population: 2952000 }
+```
+
+## 2.4 Ролі повідомлень (Chat Completions)
+
+```typescript
+// chat-roles.ts
+import { generateText } from 'ai';
+import { openai } from '@ai-sdk/openai';
+
+const { text } = await generateText({
+  model: openai('gpt-4o'),
+  messages: [
+    // 🎭 SYSTEM: Задає "особистість" та правила моделі
+    {
+      role: 'system',
+      content: `Ти — експерт з TypeScript. 
+        Правила:
+        - Відповідай українською
+        - Давай практичні приклади коду
+        - Якщо не знаєш — скажи прямо`
+    },
+    
+    // 👤 USER: Повідомлення від користувача
+    {
+      role: 'user',
+      content: 'Що таке generics?'
+    },
+    
+    // 🤖 ASSISTANT: Попередні відповіді моделі (для контексту)
+    {
+      role: 'assistant',
+      content: 'Generics — це спосіб створювати компоненти, які працюють з різними типами...'
+    },
+    
+    // 👤 USER: Продовження діалогу
+    {
+      role: 'user',
+      content: 'Покажи приклад з масивом'
+    }
+  ]
+});
+```
+
+### Діаграма потоку Chat API
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    Chat API Request                         │
+└─────────────────────────────────────────────────────────────┘
+                            │
+                            ▼
+┌─────────────────────────────────────────────────────────────┐
+│  messages: [                                                │
+│    { role: "system", content: "..." }     ← Обов'язковий   │
+│    { role: "user", content: "..." }       ← Перше питання  │
+│    { role: "assistant", content: "..." }  ← Попередня      │
+│    { role: "user", content: "..." }       ← Нове питання   │
+│  ]                                                          │
+└─────────────────────────────────────────────────────────────┘
+                            │
+                            ▼
+┌─────────────────────────────────────────────────────────────┐
+│                      LLM Processing                         │
+│                                                             │
+│   1. Читає system prompt (правила)                         │
+│   2. Аналізує історію (context)                            │
+│   3. Генерує відповідь на останнє повідомлення             │
+└─────────────────────────────────────────────────────────────┘
+                            │
+                            ▼
+┌─────────────────────────────────────────────────────────────┐
+│  response: {                                                │
+│    role: "assistant",                                       │
+│    content: "..."                                           │
+│  }                                                          │
+└─────────────────────────────────────────────────────────────┘
+```
+
+## 2.5 Multimodal: робота з зображеннями
+
+### Базовий приклад з URL
+
+```typescript
+// vision-url.ts
+import { generateText } from 'ai';
+import { openai } from '@ai-sdk/openai';
+
+const { text } = await generateText({
+  model: openai('gpt-4o'),
+  messages: [
+    {
+      role: 'user',
+      content: [
+        { type: 'text', text: 'Що на цьому зображенні?' },
+        { 
+          type: 'image', 
+          image: new URL('https://example.com/image.jpg')
+        }
+      ]
+    }
+  ]
+});
+
+console.log(text);
+```
+
+### Повний приклад: завантаження з диску + base64
+
+```typescript
+// vision-file.ts
+import { generateText } from 'ai';
+import { openai } from '@ai-sdk/openai';
+import * as fs from 'fs';
+import * as path from 'path';
+
+async function analyzeLocalImage(imagePath: string) {
+  // 1. Перевіряємо що файл існує
+  if (!fs.existsSync(imagePath)) {
+    throw new Error(`Файл не знайдено: ${imagePath}`);
+  }
+  
+  // 2. Перевіряємо розмір файлу (ліміт ~20MB для OpenAI)
+  const stats = fs.statSync(imagePath);
+  const fileSizeMB = stats.size / (1024 * 1024);
+  if (fileSizeMB > 20) {
+    throw new Error(`Файл занадто великий: ${fileSizeMB.toFixed(2)}MB (ліміт 20MB)`);
+  }
+  
+  // 3. Визначаємо MIME тип
+  const ext = path.extname(imagePath).toLowerCase();
+  const mimeTypes: Record<string, string> = {
+    '.jpg': 'image/jpeg',
+    '.jpeg': 'image/jpeg',
+    '.png': 'image/png',
+    '.gif': 'image/gif',
+    '.webp': 'image/webp',
+  };
+  
+  const mimeType = mimeTypes[ext];
+  if (!mimeType) {
+    throw new Error(`Непідтримуваний формат: ${ext}`);
+  }
+  
+  // 4. Читаємо та конвертуємо в base64
+  const imageBuffer = fs.readFileSync(imagePath);
+  const base64Image = imageBuffer.toString('base64');
+  
+  console.log(`📷 Обробляємо: ${imagePath}`);
+  console.log(`   Розмір: ${fileSizeMB.toFixed(2)}MB, Формат: ${mimeType}`);
+  
+  // 5. Відправляємо до API
+  const { text, usage } = await generateText({
+    model: openai('gpt-4o'),
+    messages: [
+      {
+        role: 'user',
+        content: [
+          { type: 'text', text: 'Опиши детально що зображено на фото' },
+          { 
+            type: 'image', 
+            image: `data:${mimeType};base64,${base64Image}`
+          }
+        ]
+      }
+    ]
+  });
+  
+  return { description: text, tokens: usage.totalTokens };
+}
+
+// Використання
+const result = await analyzeLocalImage('./screenshot.png');
+console.log('\n📝 Опис:', result.description);
+console.log('💰 Токенів:', result.tokens);
+```
+
+**📊 Вивід консолі:**
+```
+📷 Обробляємо: ./screenshot.png
+   Розмір: 0.45MB, Формат: image/png
+
+📝 Опис: На зображенні показано інтерфейс VS Code з відкритим TypeScript 
+файлом. Видно код функції з async/await синтаксисом. У лівій панелі 
+відображається дерево файлів проекту з папками src, tests, node_modules...
+
+💰 Токенів: 892
+```
+
+### ⚠️ Ліміти розміру зображень
+
+| Провайдер | Макс. розмір | Макс. роздільність | Формати |
+|-----------|--------------|-------------------|---------|
+| OpenAI (GPT-4o) | 20MB | 2048x2048 | JPEG, PNG, GIF, WebP |
+| Anthropic (Claude) | 5MB | 8000x8000 | JPEG, PNG, GIF, WebP |
+| Google (Gemini) | 20MB | Без ліміту | JPEG, PNG, GIF, WebP, PDF |
+
+## 🤔 Перевір себе
+
+1. Яка різниця між `generateText` і `streamText`?
+2. Навіщо потрібна Zod схема в `generateObject`?
+3. Чому `assistant` повідомлення включають в масив messages?
+
+<details>
+<summary>📝 Відповіді</summary>
+
+1. `generateText` чекає повну відповідь, `streamText` повертає токени поступово — краще для UX в чат-ботах.
+
+2. Zod схема гарантує що LLM поверне дані у правильному форматі. AI SDK автоматично конвертує Zod схему в JSON Schema для API.
+
+3. `assistant` повідомлення дають моделі контекст попереднього діалогу — без них кожен запит буде як "з чистого аркуша".
+</details>
+
+---
+
+# Модуль 2.5: Типові помилки та їх вирішення
+
+> 🎯 **Мета модуля:** Навчитись швидко діагностувати та виправляти найпоширеніші помилки при роботі з LLM API.
+
+## ❌ Проблема: Context Length Exceeded
+
+### Симптом
+```
+Error: This model's maximum context length is 128000 tokens. 
+However, your messages resulted in 135847 tokens.
+```
+
+### Причина
+Сума токенів (system prompt + history + user message + retrieved docs) перевищила ліміт моделі.
+
+### Рішення 1: Обрізання історії (найпростіше)
+
+```typescript
+// context-trim.ts
+interface Message {
+  role: 'user' | 'assistant' | 'system';
+  content: string;
+}
+
+function trimHistory(
+  messages: Message[], 
+  maxTokens: number,
+  systemPrompt: string
+): Message[] {
+  // Приблизна оцінка: 1 токен ≈ 4 символи
+  const estimateTokens = (text: string) => Math.ceil(text.length / 4);
+  
+  const systemTokens = estimateTokens(systemPrompt);
+  let availableTokens = maxTokens - systemTokens - 1000; // 1000 на відповідь
+  
+  const result: Message[] = [];
+  
+  // Йдемо з кінця (найновіші повідомлення важливіші)
+  for (let i = messages.length - 1; i >= 0; i--) {
+    const msgTokens = estimateTokens(messages[i].content);
+    
+    if (availableTokens - msgTokens < 0) {
+      console.log(`⚠️ Обрізано ${i + 1} старих повідомлень`);
+      break;
+    }
+    
+    availableTokens -= msgTokens;
+    result.unshift(messages[i]); // Додаємо на початок
+  }
+  
+  return result;
+}
+
+// Використання
+const trimmed = trimHistory(allMessages, 128000, systemPrompt);
+```
+
+### Рішення 2: Summarization (для довгих діалогів)
+
+```typescript
+// context-summarize.ts
+import { generateText } from 'ai';
+import { openai } from '@ai-sdk/openai';
+
+async function summarizeOldMessages(
+  messages: Message[],
+  keepLast: number = 10
+): Promise<Message[]> {
+  if (messages.length <= keepLast) {
+    return messages;
+  }
+  
+  const oldMessages = messages.slice(0, -keepLast);
+  const recentMessages = messages.slice(-keepLast);
+  
+  // Створюємо summary старих повідомлень
+  const { text: summary } = await generateText({
+    model: openai('gpt-4o-mini'), // Дешевша модель для summary
+    prompt: `Стисло узагальни ключові моменти цієї розмови (максимум 200 слів):
+    
+${oldMessages.map(m => `${m.role}: ${m.content}`).join('\n')}`,
+  });
+  
+  // Вставляємо summary як системне повідомлення
+  return [
+    {
+      role: 'system' as const,
+      content: `[Контекст попередньої розмови: ${summary}]`
+    },
+    ...recentMessages
+  ];
+}
+```
+
+**📊 Результат:**
+```
+До: 150,000 токенів (помилка!)
+Після summarization: 45,000 токенів (працює)
+```
+
+---
+
+## ❌ Проблема: Invalid JSON Response
+
+### Симптом
+```
+SyntaxError: Unexpected token 'I' at position 0
+JSON: "I'll help you with that. Here's the data: {"name": "test"}"
+```
+
+### Причина
+Модель додала текст перед/після JSON замість чистого JSON.
+
+### Рішення: Використовуйте `generateObject`
+
+```typescript
+// ❌ НЕПРАВИЛЬНО: ручний парсинг
+const { text } = await generateText({
+  model: openai('gpt-4o'),
+  prompt: 'Поверни JSON з полями name та age для користувача John, 25 років'
+});
+const data = JSON.parse(text); // 💥 Може впасти!
+
+// ✅ ПРАВИЛЬНО: generateObject
+import { generateObject } from 'ai';
+import { z } from 'zod';
+
+const { object } = await generateObject({
+  model: openai('gpt-4o'),
+  schema: z.object({
+    name: z.string(),
+    age: z.number()
+  }),
+  prompt: 'Дані для користувача John, 25 років'
+});
+// object гарантовано має правильну структуру
+```
+
+### Fallback: Robust JSON parsing
+
+```typescript
+// robust-json-parse.ts
+function extractJSON(text: string): unknown {
+  // Спроба 1: прямий парсинг
+  try {
+    return JSON.parse(text);
+  } catch {}
+  
+  // Спроба 2: витягти JSON з markdown code block
+  const codeBlockMatch = text.match(/```(?:json)?\s*([\s\S]*?)```/);
+  if (codeBlockMatch) {
+    try {
+      return JSON.parse(codeBlockMatch[1].trim());
+    } catch {}
+  }
+  
+  // Спроба 3: знайти JSON об'єкт в тексті
+  const jsonMatch = text.match(/\{[\s\S]*\}/);
+  if (jsonMatch) {
+    try {
+      return JSON.parse(jsonMatch[0]);
+    } catch {}
+  }
+  
+  throw new Error(`Не вдалося витягти JSON з: ${text.slice(0, 100)}...`);
+}
+```
+
+---
+
+## ❌ Проблема: Rate Limiting (429)
+
+### Симптом
+```
+Error: 429 Too Many Requests
+Rate limit reached for gpt-4o: 500 requests per minute
+```
+
+### Причина
+Перевищено ліміт запитів до API.
+
+### Рішення: Exponential Backoff з Retry
+
+```typescript
+// retry-with-backoff.ts
+import { generateText } from 'ai';
+import { openai } from '@ai-sdk/openai';
+
+interface RetryConfig {
+  maxRetries: number;
+  baseDelayMs: number;
+  maxDelayMs: number;
+}
+
+async function generateWithRetry(
+  prompt: string,
+  config: RetryConfig = { maxRetries: 5, baseDelayMs: 1000, maxDelayMs: 60000 }
+): Promise<string> {
+  let lastError: Error | null = null;
+  
+  for (let attempt = 0; attempt < config.maxRetries; attempt++) {
+    try {
+      const { text } = await generateText({
+        model: openai('gpt-4o'),
+        prompt,
+      });
+      return text;
+    } catch (error: any) {
+      lastError = error;
+      
+      // Перевіряємо чи це rate limit
+      if (error.status !== 429) {
+        throw error; // Інші помилки — не retry
+      }
+      
+      // Експоненційна затримка: 1s, 2s, 4s, 8s, 16s...
+      const delay = Math.min(
+        config.baseDelayMs * Math.pow(2, attempt),
+        config.maxDelayMs
+      );
+      
+      // Додаємо jitter (випадковість) щоб уникнути "хвиль" запитів
+      const jitter = Math.random() * 1000;
+      
+      console.log(`⏳ Rate limited. Retry ${attempt + 1}/${config.maxRetries} через ${(delay + jitter) / 1000}s`);
+      
+      await new Promise(resolve => setTimeout(resolve, delay + jitter));
+    }
+  }
+  
+  throw lastError;
+}
+
+// Використання
+const result = await generateWithRetry('Привіт!');
+```
+
+**📊 Вивід при rate limit:**
+```
+⏳ Rate limited. Retry 1/5 через 1.3s
+⏳ Rate limited. Retry 2/5 через 2.7s
+✅ Успішно після 3-ї спроби
+```
+
+---
+
+## ❌ Проблема: Tool/Function Not Executed
+
+### Симптом
+```typescript
+// Очікували виклик функції, але модель просто написала текст:
+"I would call the weather function with city='Kyiv'"
+```
+
+### Причина
+1. Модель не розуміє коли викликати tool
+2. Опис tool занадто загальний
+3. Промпт не вказує що потрібно ВИКОНАТИ дію
+
+### Рішення: Покращення Tool Definition
+
+```typescript
+// ❌ НЕПРАВИЛЬНО: розмитий опис
+const tools = {
+  weather: {
+    description: 'Gets weather information',
+    parameters: z.object({ city: z.string() })
+  }
+};
+
+// ✅ ПРАВИЛЬНО: чіткий опис з прикладами
+const tools = {
+  getWeather: {
+    description: `Отримує поточну погоду для вказаного міста.
+    
+ЗАВЖДИ викликай цей tool коли користувач:
+- Питає про погоду ("яка погода в Києві?")
+- Хоче дізнатись температуру
+- Питає чи брати парасольку
+
+Приклади запитів що потребують цього tool:
+- "Погода Львів" → getWeather({ city: "Львів" })
+- "Чи холодно в Одесі?" → getWeather({ city: "Одеса" })`,
+    parameters: z.object({ 
+      city: z.string().describe('Назва міста українською або англійською')
+    })
+  }
+};
+```
+
+### Рішення 2: Примусовий виклик tool
+
+```typescript
+import { generateText } from 'ai';
+import { openai } from '@ai-sdk/openai';
+
+const { text, toolCalls } = await generateText({
+  model: openai('gpt-4o'),
+  tools: {
+    getWeather: {
+      description: 'Отримує погоду',
+      parameters: z.object({ city: z.string() })
+    }
+  },
+  toolChoice: 'required', // 👈 Примушує викликати хоча б один tool
+  prompt: 'Яка погода в Києві?'
+});
+
+if (toolCalls.length === 0) {
+  console.error('❌ Модель не викликала tool!');
+}
+```
+
+---
+
+## ❌ Проблема: Галюцинації у Structured Data
+
+### Симптом
+```typescript
+// Запит: "Проаналізуй відгук: 'Товар ок'"
+// Відповідь моделі:
+{
+  "productName": "iPhone 15 Pro",     // 😱 Вигадано!
+  "purchaseDate": "2024-03-15",       // 😱 Вигадано!
+  "rating": 4.5,                      // Не було в відгуку
+  "issues": ["battery life", "price"] // Повністю вигадано
+}
+```
+
+### Причина
+Модель "заповнює пробіли" у схемі даними які здаються правдоподібними.
+
+### Рішення 1: Optional поля + чіткі інструкції
+
+```typescript
+// anti-hallucination.ts
+import { generateObject } from 'ai';
+import { z } from 'zod';
+
+const ReviewAnalysis = z.object({
+  // Поля що ЗАВЖДИ можна визначити
+  sentiment: z.enum(['positive', 'negative', 'neutral']),
+  
+  // Поля що можуть бути відсутні в тексті
+  productName: z.string().nullable().describe(
+    'Назва продукту ТІЛЬКИ якщо явно згадана в тексті. Якщо не згадана — null'
+  ),
+  rating: z.number().nullable().describe(
+    'Оцінка ТІЛЬКИ якщо явно вказана (наприклад "4/5", "8 з 10"). Інакше — null'
+  ),
+  
+  // Масиви що можуть бути порожніми
+  mentionedIssues: z.array(z.string()).describe(
+    'Список проблем які ДОСЛІВНО згадані в відгуку. Порожній масив якщо нічого не згадано'
+  ),
+});
+
+const { object } = await generateObject({
+  model: openai('gpt-4o'),
+  schema: ReviewAnalysis,
+  prompt: `Проаналізуй відгук. ВАЖЛИВО:
+- НЕ вигадуй інформацію якої немає в тексті
+- Для відсутньої інформації використовуй null або порожній масив
+- Витягуй ТІЛЬКИ те що явно написано
+
+Відгук: "Товар ок"`,
+});
+
+console.log(object);
+// { sentiment: 'neutral', productName: null, rating: null, mentionedIssues: [] }
+```
+
+### Рішення 2: Додайте поле "confidence"
+
+```typescript
+const FactExtraction = z.object({
+  facts: z.array(z.object({
+    statement: z.string(),
+    confidence: z.enum(['explicit', 'inferred', 'uncertain']).describe(
+      'explicit = дослівно в тексті, inferred = логічний висновок, uncertain = припущення'
+    ),
+    sourceQuote: z.string().nullable().describe(
+      'Цитата з тексту що підтверджує факт, або null'
+    )
+  }))
+});
+```
+
+---
+
+## 📋 Чеклист вирішення помилок
+
+| Помилка | Перша дія | Друга дія |
+|---------|-----------|-----------|
+| Context length exceeded | Обрізати історію | Summarization |
+| Invalid JSON | Використати `generateObject` | Robust parsing |
+| 429 Rate limit | Exponential backoff | Batch requests |
+| Tool not called | Покращити description | `toolChoice: 'required'` |
+| Галюцинації | Nullable поля | Додати confidence |
+| 401 Unauthorized | Перевірити API ключ | Перевірити баланс |
+| 500 Server Error | Retry через 30s | Спробувати іншу модель |
+
+---
+
+## 🤔 Перевір себе
+
+1. Чому exponential backoff краще ніж фіксована затримка при retry?
+2. Як запобігти галюцинаціям у structured output?
+3. Коли НЕ варто робити retry?
+
+<details>
+<summary>📝 Відповіді</summary>
+
+1. Exponential backoff дає серверу час відновитись і запобігає "хвилям" повторних запитів від багатьох клієнтів одночасно.
+
+2. Використовувати nullable поля, додавати confidence level, явно інструктувати модель НЕ вигадувати.
+
+3. При помилках 4xx (крім 429) — це помилки клієнта (невалідний запит, unauthorized), retry не допоможе.
+</details>
+
+---
+
+*Продовження у Part 2: Function Calling, AI Агенти, Real-World Use Cases*
