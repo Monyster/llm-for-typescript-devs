@@ -90,11 +90,83 @@ console.log('TS setup vs борщ:', cosineSimilarity(v1, v3));     // ~0.12 (р
 
 ### Моделі для embeddings
 
-| Модель | Розмір вектора | Ціна за 1M токенів | Якість |
-|--------|---------------|-------------------|--------|
-| text-embedding-3-small | 1536 | $0.02 | Достатня для більшості задач |
-| text-embedding-3-large | 3072 | $0.13 | Найвища якість |
-| Gemini text-embedding | 768 | Безкоштовно | Хороша, безкоштовна |
+| Модель | Провайдер | Розмір вектора | Ціна за 1M токенів | Якість |
+|--------|-----------|---------------|-------------------|--------|
+| text-embedding-3-small | OpenAI | 1536 | $0.02 | Достатня для більшості задач |
+| text-embedding-3-large | OpenAI | 3072 | $0.13 | Найвища якість від OpenAI |
+| voyage-3-large | Voyage AI | 1024 | $0.06 | Рекомендована Anthropic для RAG |
+| text-embedding-004 | Google | 768 | Безкоштовно (ліміт) | Хороша, найдешевша |
+| nomic-embed-text | Ollama (local) | 768 | $0 (self-hosted) | Хороша, повністю безкоштовна |
+
+### Embeddings з різних провайдерів через AI SDK
+
+```typescript
+import { embed } from 'ai';
+import { openai } from '@ai-sdk/openai';
+import { google } from '@ai-sdk/google';
+import { createOllama } from 'ollama-ai-provider';
+
+// OpenAI — найпопулярніший, стабільний
+const { embedding: e1 } = await embed({
+  model: openai.embedding('text-embedding-3-small'),
+  value: 'Як налаштувати TypeScript проект',
+});
+
+// Google — безкоштовний (до ліміту), менший вектор (768)
+const { embedding: e2 } = await embed({
+  model: google.textEmbeddingModel('text-embedding-004'),
+  value: 'Як налаштувати TypeScript проект',
+});
+
+// Ollama — повністю локально, дані не покидають сервер
+const ollama = createOllama();
+const { embedding: e3 } = await embed({
+  model: ollama.textEmbeddingModel('nomic-embed-text'),
+  value: 'Як налаштувати TypeScript проект',
+});
+```
+
+**Без AI SDK** (напряму через API):
+
+```typescript
+// OpenAI Embeddings API
+const openaiEmbed = await fetch('https://api.openai.com/v1/embeddings', {
+  method: 'POST',
+  headers: { 'Authorization': `Bearer ${OPENAI_KEY}`, 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    model: 'text-embedding-3-small',
+    input: 'Як налаштувати TypeScript проект',
+  }),
+});
+// Відповідь: { data: [{ embedding: [0.023, -0.012, ...], index: 0 }] }
+
+// Voyage AI (рекомендований для Claude/RAG)
+const voyageEmbed = await fetch('https://api.voyageai.com/v1/embeddings', {
+  method: 'POST',
+  headers: { 'Authorization': `Bearer ${VOYAGE_KEY}`, 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    model: 'voyage-3-large',
+    input: ['Як налаштувати TypeScript проект'],
+    input_type: 'document',  // Voyage розрізняє 'document' та 'query'!
+  }),
+});
+
+// Google Embeddings API
+const googleEmbed = await fetch(
+  `https://generativelanguage.googleapis.com/v1beta/models/text-embedding-004:embedContent?key=${GOOGLE_KEY}`,
+  {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      content: { parts: [{ text: 'Як налаштувати TypeScript проект' }] },
+      // Google також розрізняє task types
+      taskType: 'RETRIEVAL_DOCUMENT',  // або RETRIEVAL_QUERY, SEMANTIC_SIMILARITY
+    }),
+  }
+);
+```
+
+**Важливо:** Вектори від різних моделей **несумісні**! Не можна індексувати OpenAI embeddings, а шукати Google embeddings. Обирайте одну модель і використовуйте її скрізь.
 
 ---
 
