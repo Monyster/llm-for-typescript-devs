@@ -190,6 +190,52 @@ async function runAgent(config: AgentConfig, userMessage: string) {
 
 ---
 
+## 8.4.1 Агенти з різними провайдерами
+
+Через AI SDK агенти працюють з будь-яким провайдером — але є нюанси:
+
+```typescript
+const agentConfig = {
+  system: 'Ти — дослідницький агент. Використовуй tools для збору інформації.',
+  tools: { search: searchTool, analyze: analyzeTool, summarize: summarizeTool },
+  maxSteps: 8,
+  prompt: 'Досліди тренди TypeScript фреймворків у 2026',
+};
+
+// GPT-4o-mini — найдешевший, добре обирає tools, іноді "забуває" зупинитись
+await generateText({ model: openai('gpt-4o-mini'), ...agentConfig });
+
+// Claude Sonnet — найкраще слідує складним інструкціям, рідко зациклюється
+await generateText({ model: anthropic('claude-sonnet-4-5-20250929'), ...agentConfig });
+
+// Gemini Flash — найшвидший, але іноді пропускає tools і відповідає напряму
+await generateText({ model: google('gemini-2.5-flash-preview-04-17'), ...agentConfig });
+```
+
+**Практичні відмінності при agent loop:**
+
+| Поведінка | OpenAI GPT-4o-mini | Claude Sonnet | Gemini Flash |
+|-----------|-------------------|---------------|--------------|
+| Якість вибору tool | Добра | **Найкраща** | Добра |
+| Паралельні tool calls | ✅ Часто робить | ✅ Часто робить | ❌ По одному |
+| Слідування system prompt | Добре | **Найкраще** | Добре |
+| Схильність до зациклювання | Середня | Низька | Низька |
+| Швидкість (per step) | ~500ms | ~800ms | **~300ms** |
+| Вартість (8 steps) | ~$0.005 | ~$0.02 | ~$0.003 |
+
+**Порада:** Для production-агентів часто вигідна комбінація — Claude для складних рішень, GPT-4o-mini для простих tool calls:
+
+```typescript
+// Model routing для агента
+function getAgentModel(complexity: 'simple' | 'complex') {
+  return complexity === 'complex'
+    ? anthropic('claude-sonnet-4-5-20250929')  // Складні multi-step задачі
+    : openai('gpt-4o-mini');                     // Прості tool call цикли
+}
+```
+
+---
+
 ## 8.5 Коли використовувати агентів, а коли ні
 
 | Задача | Агент потрібен? | Чому |
