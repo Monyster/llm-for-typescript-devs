@@ -131,6 +131,85 @@ interface ChatCompletion {
 }
 ```
 
+### А тепер — те ж саме для Anthropic та Google
+
+Кожен провайдер має **свій формат запитів та відповідей**. Порівняйте:
+
+```typescript
+// Anthropic Claude API — ІНШИЙ формат!
+async function callAnthropic() {
+  const response = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': process.env.ANTHROPIC_API_KEY!,
+      'anthropic-version': '2023-06-01',        // Обов'язковий заголовок версії
+    },
+    body: JSON.stringify({
+      model: 'claude-sonnet-4-5-20250929',
+      max_tokens: 1024,                          // В Anthropic — обов'язковий параметр!
+      system: 'Відповідай коротко, одним реченням.',  // system — окреме поле, НЕ в messages
+      messages: [
+        { role: 'user', content: 'Що таке Promise в JavaScript?' },
+      ],
+    }),
+  });
+
+  const data = await response.json();
+
+  // Структура відповіді — ІНША ніж у OpenAI
+  console.log('Відповідь:', data.content[0].text);   // content[0].text, НЕ choices[0].message.content
+  console.log('Токени:', data.usage);
+  // { input_tokens: 25, output_tokens: 30 }          // input/output, НЕ prompt/completion
+  console.log('Причина зупинки:', data.stop_reason);  // stop_reason, НЕ finish_reason
+}
+
+// Google Gemini API — ТРЕТІЙ формат!
+async function callGemini() {
+  const response = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${process.env.GOOGLE_API_KEY}`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        systemInstruction: {                              // system prompt — окрема структура
+          parts: [{ text: 'Відповідай коротко, одним реченням.' }],
+        },
+        contents: [{                                      // contents, НЕ messages
+          role: 'user',
+          parts: [{ text: 'Що таке Promise в JavaScript?' }],  // parts[].text, НЕ content
+        }],
+        generationConfig: {                               // Параметри — в окремому об'єкті
+          temperature: 0.3,
+        },
+      }),
+    }
+  );
+
+  const data = await response.json();
+
+  // Структура відповіді — ЗНОВУ ІНША
+  console.log('Відповідь:', data.candidates[0].content.parts[0].text);
+  // candidates[0].content.parts[0].text — найглибше вкладена відповідь з трьох API
+  console.log('Токени:', data.usageMetadata);
+  // { promptTokenCount: 22, candidatesTokenCount: 28, totalTokenCount: 50 }
+}
+```
+
+### Порівняння трьох API
+
+| Аспект | OpenAI | Anthropic | Google Gemini |
+|--------|--------|-----------|---------------|
+| Auth | `Authorization: Bearer` | `x-api-key` + `anthropic-version` | `?key=` у URL |
+| System prompt | `role: 'system'` в messages | Окреме поле `system` | `systemInstruction.parts` |
+| Messages | `messages[].content` | `messages[].content` | `contents[].parts[].text` |
+| Відповідь | `choices[0].message.content` | `content[0].text` | `candidates[0].content.parts[0].text` |
+| Токени | `prompt_tokens` / `completion_tokens` | `input_tokens` / `output_tokens` | `promptTokenCount` / `candidatesTokenCount` |
+| max_tokens | Опціональний | **Обов'язковий** | Опціональний (`maxOutputTokens`) |
+| Стоп-причина | `finish_reason` | `stop_reason` | `finishReason` (camelCase!) |
+
+**Саме тому AI SDK існує** — щоб ви не мали справу з цим зоопарком.
+
 ---
 
 ## 2.3 Те ж саме через Vercel AI SDK (набагато зручніше)
