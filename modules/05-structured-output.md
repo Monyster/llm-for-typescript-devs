@@ -70,6 +70,106 @@ console.log(object.role);     // "CTO"
 4. AI SDK валідує та парсить результат
 5. Ви отримуєте типізований об'єкт
 
+### Різниця між провайдерами
+
+Код з AI SDK **ідентичний** — міняється лише один рядок `model:`:
+
+```typescript
+import { generateObject } from 'ai';
+import { openai } from '@ai-sdk/openai';
+import { anthropic } from '@ai-sdk/anthropic';
+import { google } from '@ai-sdk/google';
+
+// OpenAI — native JSON Schema mode (найстабільніший structured output)
+const result1 = await generateObject({
+  model: openai('gpt-4o-mini'),
+  schema: ContactSchema,
+  prompt: text,
+});
+
+// Anthropic — використовує tool_use під капотом для structured output
+// Claude краще працює з складними вкладеними об'єктами та .describe()
+const result2 = await generateObject({
+  model: anthropic('claude-sonnet-4-5-20250929'),
+  schema: ContactSchema,
+  prompt: text,
+});
+
+// Google Gemini — має власний responseSchema mode
+// Найдешевший варіант, Gemini Flash дає хороші результати для простих схем
+const result3 = await generateObject({
+  model: google('gemini-2.5-flash-preview-04-17'),
+  schema: ContactSchema,
+  prompt: text,
+});
+```
+
+**Але під капотом кожен провайдер реалізує structured output по-різному:**
+
+| Провайдер | Механізм | Обмеження |
+|-----------|---------|-----------|
+| **OpenAI** | Native `response_format: { type: "json_schema" }` | Не підтримує `z.union()`, max 5 рівнів вкладеності |
+| **Anthropic** | Використовує `tool_use` з одним tool | Немає strict mode, AI SDK додає валідацію |
+| **Google** | `responseSchema` в Gemini API | Обмежена підтримка `nullable`, не всі Zod типи |
+
+Якщо ви хочете **без AI SDK** (щоб зрозуміти що відбувається під капотом):
+
+```typescript
+// OpenAI — напряму через API
+const openaiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+  method: 'POST',
+  headers: { 'Authorization': `Bearer ${OPENAI_API_KEY}`, 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    model: 'gpt-4o-mini',
+    messages: [{ role: 'user', content: text }],
+    response_format: {
+      type: 'json_schema',
+      json_schema: {
+        name: 'contact',
+        strict: true,  // OpenAI гарантує 100% відповідність схемі
+        schema: zodToJsonSchema(ContactSchema),
+      },
+    },
+  }),
+});
+
+// Anthropic — використовує tool_use як хак для structured output
+const anthropicResponse = await fetch('https://api.anthropic.com/v1/messages', {
+  method: 'POST',
+  headers: { 'x-api-key': ANTHROPIC_API_KEY, 'Content-Type': 'application/json', 'anthropic-version': '2023-06-01' },
+  body: JSON.stringify({
+    model: 'claude-sonnet-4-5-20250929',
+    max_tokens: 1024,
+    messages: [{ role: 'user', content: text }],
+    tools: [{
+      name: 'extract_contact',
+      description: 'Extract contact info',
+      input_schema: zodToJsonSchema(ContactSchema),
+    }],
+    tool_choice: { type: 'tool', name: 'extract_contact' },  // Примусово викликати tool
+  }),
+});
+// Результат буде в response.content[0].input (тип tool_use)
+
+// Google Gemini — responseSchema
+const geminiResponse = await fetch(
+  `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GOOGLE_API_KEY}`,
+  {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      contents: [{ parts: [{ text }] }],
+      generationConfig: {
+        responseMimeType: 'application/json',
+        responseSchema: zodToJsonSchema(ContactSchema),
+      },
+    }),
+  }
+);
+```
+
+**Висновок:** AI SDK абстрагує ці відмінності — ви пишете один код, а він адаптує під кожен провайдер. Але розуміння механізмів допомагає при дебагу.
+
 ---
 
 ## 5.3 Практичні приклади
