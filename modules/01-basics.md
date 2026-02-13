@@ -259,24 +259,48 @@ Reasoning models (o3, o4-mini, Claude з Extended Thinking) — це модел�
 ```typescript
 import { generateText } from 'ai';
 import { openai } from '@ai-sdk/openai';
+import { anthropic } from '@ai-sdk/anthropic';
+import { google } from '@ai-sdk/google';
 
-// OpenAI o3 — reasoning через reasoning_effort
-const { text } = await generateText({
+// OpenAI o3 — reasoning через окрему модель
+const { text: o3Result } = await generateText({
   model: openai('o3'),
   prompt: 'Знайди баг в цьому коді та поясни покроково...',
-  // reasoning_effort встановлюється в провайдер-специфічних опціях
+  // o3 "думає" автоматично, reasoning_effort можна налаштувати
 });
 
-// Anthropic Claude — Extended Thinking
-import { anthropic } from '@ai-sdk/anthropic';
-
-const { text: claudeText } = await generateText({
+// Anthropic Claude — Extended Thinking як опція до звичайної моделі
+const { text: claudeResult } = await generateText({
   model: anthropic('claude-sonnet-4-5-20250929'),
   prompt: 'Проаналізуй архітектуру цієї системи...',
-  // Extended thinking вмикається автоматично для складних запитів
-  // або явно через API параметри
+  providerOptions: {
+    anthropic: {
+      thinking: { type: 'enabled', budgetTokens: 10000 },  // Бюджет на "думання"
+    },
+  },
+});
+
+// Google Gemini — thinking як опція (аналогічно до Anthropic)
+const { text: geminiResult } = await generateText({
+  model: google('gemini-2.5-flash-preview-04-17'),
+  prompt: 'Оптимізуй цей SQL запит...',
+  providerOptions: {
+    google: {
+      thinkingConfig: { thinkingBudget: 10000 },
+    },
+  },
 });
 ```
+
+### Ключова різниця в підходах
+
+| Аспект | OpenAI (o3/o4-mini) | Anthropic (Extended Thinking) | Google (Thinking) |
+|--------|-------------------|-------------------------------|-------------------|
+| Як увімкнути | Окрема модель (`o3`) | Опція до звичайної моделі | Опція до звичайної моделі |
+| Контроль бюджету | `reasoning_effort: low/medium/high` | `budgetTokens: N` (точний) | `thinkingBudget: N` |
+| Thinking видно? | Ні (приховано) | Так (в `reasoning` блоках) | Так |
+| Temperature | Не підтримує (завжди 1) | Підтримує | Підтримує |
+| Вартість thinking | Оплачується як output | Оплачується як output | Оплачується як output |
 
 **Важливо:** reasoning моделі дорожчі (токени на "роздуми" теж оплачуються) і повільніші. Використовуйте їх тільки коли якість відповіді дійсно критична.
 
