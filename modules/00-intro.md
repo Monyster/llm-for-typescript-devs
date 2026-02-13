@@ -66,7 +66,7 @@ import { openai } from '@ai-sdk/openai';
 import { z } from 'zod';
 
 const { object } = await generateObject({
-  model: openai('gpt-4o-mini'),
+  model: openai('gpt-4o-mini'),  // Або anthropic('claude-haiku'), або google('gemini-flash')
   schema: z.object({
     name: z.string(),
     email: z.string().email(),
@@ -74,7 +74,7 @@ const { object } = await generateObject({
   }),
   prompt: `Витягни контактні дані: "${текст}"`,
 });
-// Працює на будь-якому форматі, будь-якій мові
+// Працює з будь-яким провайдером — міняється тільки рядок model
 ```
 
 **Різниця:** замість тижня роботи над regex — 10 рядків коду за 5 хвилин, і результат працює краще.
