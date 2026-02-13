@@ -68,6 +68,52 @@ const { text } = await generateText({
 // Знижка: 90% на кешовані токени, TTL 5 хвилин
 ```
 
+### Google Gemini: Context Caching API
+
+Gemini має окремий API для створення кешу:
+
+```typescript
+// Google Gemini — створюємо кеш як окремий ресурс
+// Крок 1: Створити кеш
+const cacheResponse = await fetch(
+  `https://generativelanguage.googleapis.com/v1beta/cachedContents?key=${GOOGLE_KEY}`,
+  {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      model: 'models/gemini-2.5-flash',
+      contents: [{ role: 'user', parts: [{ text: hugeContext }] }],
+      ttl: '3600s',  // 1 година (ви контролюєте TTL)
+    }),
+  }
+);
+const cache = await cacheResponse.json();
+
+// Крок 2: Використовувати кеш у запитах
+const result = await fetch(
+  `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GOOGLE_KEY}`,
+  {
+    method: 'POST',
+    body: JSON.stringify({
+      cachedContent: cache.name,  // Посилання на створений кеш
+      contents: [{ role: 'user', parts: [{ text: 'Питання по контексту' }] }],
+    }),
+  }
+);
+// Знижка: 75% на кешовані токени
+```
+
+### Порівняння кешування між провайдерами
+
+| Аспект | OpenAI | Anthropic | Google Gemini |
+|--------|--------|-----------|---------------|
+| Тип | Автоматичне | Explicit (`cacheControl`) | Окремий API (`cachedContents`) |
+| Мінімум для кешу | 1,024 токенів | 1,024 токенів (Sonnet) | 32,768 токенів |
+| TTL | 24 години (автоматичний) | 5 хвилин (можна продовжити) | Ви задаєте (до 1 дня) |
+| Знижка | 50% | **90%** (найбільша) | 75% |
+| Контроль | Немає (автоматичний) | Повний (ви обираєте що кешувати) | Повний |
+| Оплата за запис | Ні | Так (25% надбавка за перший запит) | Так |
+
 ### Реальна економія
 
 | Сценарій | Без кешу | З кешем | Економія |
