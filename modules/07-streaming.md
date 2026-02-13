@@ -89,6 +89,108 @@ export async function POST(req: Request) {
 }
 ```
 
+### Стрімінг під капотом: SSE у різних провайдерів
+
+AI SDK абстрагує стрімінг, але кожен провайдер відправляє SSE-чанки **в різному форматі**:
+
+```typescript
+// OpenAI SSE — кожен чанк має поле delta
+// data: {"choices":[{"delta":{"content":"Привіт"},"index":0}]}
+// data: {"choices":[{"delta":{"content":" світ"},"index":0}]}
+// data: [DONE]
+
+// Anthropic SSE — event-based, різні типи подій
+// event: message_start
+// data: {"type":"message_start","message":{"id":"msg_..."}}
+// event: content_block_delta
+// data: {"type":"content_block_delta","delta":{"type":"text_delta","text":"Привіт"}}
+// event: content_block_delta
+// data: {"type":"content_block_delta","delta":{"type":"text_delta","text":" світ"}}
+// event: message_stop
+
+// Google Gemini SSE — масив candidates
+// data: {"candidates":[{"content":{"parts":[{"text":"Привіт"}]}}]}
+// data: {"candidates":[{"content":{"parts":[{"text":" світ"}]}}]}
+```
+
+Якщо вам потрібен raw streaming **без AI SDK**:
+
+```typescript
+// OpenAI streaming — напряму
+async function streamOpenAI(prompt: string) {
+  const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    method: 'POST',
+    headers: { 'Authorization': `Bearer ${OPENAI_KEY}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      model: 'gpt-4o-mini',
+      messages: [{ role: 'user', content: prompt }],
+      stream: true,  // ← Увімкнути стрімінг
+    }),
+  });
+
+  const reader = response.body!.getReader();
+  const decoder = new TextDecoder();
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    const text = decoder.decode(value);
+    // Парсимо SSE: "data: {...}\n\n"
+    for (const line of text.split('\n')) {
+      if (line.startsWith('data: ') && line !== 'data: [DONE]') {
+        const json = JSON.parse(line.slice(6));
+        process.stdout.write(json.choices[0]?.delta?.content ?? '');
+      }
+    }
+  }
+}
+
+// Anthropic streaming — інший протокол
+async function streamAnthropic(prompt: string) {
+  const response = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'x-api-key': ANTHROPIC_KEY,
+      'anthropic-version': '2023-06-01',
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      model: 'claude-sonnet-4-5-20250929',
+      max_tokens: 1024,
+      stream: true,  // ← Увімкнути стрімінг
+      messages: [{ role: 'user', content: prompt }],
+    }),
+  });
+
+  const reader = response.body!.getReader();
+  const decoder = new TextDecoder();
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    const text = decoder.decode(value);
+    for (const line of text.split('\n')) {
+      if (line.startsWith('data: ')) {
+        const json = JSON.parse(line.slice(6));
+        // Anthropic: тільки content_block_delta містить текст
+        if (json.type === 'content_block_delta') {
+          process.stdout.write(json.delta.text ?? '');
+        }
+      }
+    }
+  }
+}
+```
+
+| Аспект | OpenAI | Anthropic | Google |
+|--------|--------|-----------|--------|
+| Увімкнення | `stream: true` | `stream: true` | `streamGenerateContent` endpoint |
+| Формат чанків | `choices[0].delta.content` | `delta.text` (в `content_block_delta`) | `candidates[0].content.parts[0].text` |
+| Кінець стріму | `data: [DONE]` | `event: message_stop` | Потік закривається |
+| Event types | Немає | `message_start`, `content_block_delta`, `message_stop` та ін. | Немає |
+
+**AI SDK обробляє все це за вас** — ви просто пишете `streamText({ model: ... })` і отримуєте уніфікований потік.
+
 ---
 
 ## 7.3 Chat UI з React (useChat)
