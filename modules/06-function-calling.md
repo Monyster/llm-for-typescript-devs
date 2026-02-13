@@ -91,6 +91,107 @@ tool({
 
 **`maxSteps`** — скільки циклів tool call → result дозволено. Без цього — лише один крок.
 
+### Відмінності Function Calling між провайдерами
+
+Через AI SDK — код однаковий. Але під капотом провайдери реалізують tools по-різному:
+
+```typescript
+// AI SDK — один код для всіх
+import { openai } from '@ai-sdk/openai';
+import { anthropic } from '@ai-sdk/anthropic';
+import { google } from '@ai-sdk/google';
+
+const toolConfig = {
+  tools: {
+    getWeather: tool({
+      description: 'Отримати погоду для міста',
+      parameters: z.object({ city: z.string() }),
+      execute: async ({ city }) => ({ temp: 22, city }),
+    }),
+  },
+  maxSteps: 3,
+  prompt: 'Яка погода в Києві?',
+};
+
+// Кожен провайдер — тільки model міняється
+await generateText({ model: openai('gpt-4o-mini'), ...toolConfig });
+await generateText({ model: anthropic('claude-sonnet-4-5-20250929'), ...toolConfig });
+await generateText({ model: google('gemini-2.5-flash-preview-04-17'), ...toolConfig });
+```
+
+**Відмінності під капотом:**
+
+| Особливість | OpenAI | Anthropic | Google |
+|------------|--------|-----------|--------|
+| Формат tools в API | `tools: [{ function: {...} }]` | `tools: [{ name, input_schema }]` | `tools: [{ functionDeclarations }]` |
+| Паралельні виклики | ✅ `parallel_tool_calls` | ✅ Автоматично | ❌ По одному |
+| Примусовий виклик | `tool_choice: { function: {...} }` | `tool_choice: { type: 'tool', name }` | `tool_config: { function_calling_config }` |
+| Max tools | 128 | 256+ | 64 |
+| Streaming tool calls | ✅ Шматками | ✅ Шматками | ✅ |
+
+Приклад тієї ж задачі **напряму через API** (без AI SDK):
+
+```typescript
+// OpenAI API
+const openaiResult = await fetch('https://api.openai.com/v1/chat/completions', {
+  method: 'POST',
+  headers: { 'Authorization': `Bearer ${OPENAI_KEY}`, 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    model: 'gpt-4o-mini',
+    messages: [{ role: 'user', content: 'Яка погода в Києві?' }],
+    tools: [{
+      type: 'function',
+      function: {
+        name: 'getWeather',
+        description: 'Отримати погоду для міста',
+        parameters: { type: 'object', properties: { city: { type: 'string' } }, required: ['city'] },
+      },
+    }],
+  }),
+});
+// Відповідь: choices[0].message.tool_calls[0].function.arguments = '{"city":"Київ"}'
+
+// Anthropic API — інша структура
+const anthropicResult = await fetch('https://api.anthropic.com/v1/messages', {
+  method: 'POST',
+  headers: { 'x-api-key': ANTHROPIC_KEY, 'anthropic-version': '2023-06-01', 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    model: 'claude-sonnet-4-5-20250929',
+    max_tokens: 1024,
+    messages: [{ role: 'user', content: 'Яка погода в Києві?' }],
+    tools: [{
+      name: 'getWeather',
+      description: 'Отримати погоду для міста',
+      input_schema: { type: 'object', properties: { city: { type: 'string' } }, required: ['city'] },
+    }],
+  }),
+});
+// Відповідь: content[0] = { type: 'tool_use', name: 'getWeather', input: { city: 'Київ' } }
+// Зверніть увагу: Anthropic повертає tool_use як content block, OpenAI — як tool_calls
+
+// Google Gemini API — ще інша структура
+const geminiResult = await fetch(
+  `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GOOGLE_KEY}`,
+  {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      contents: [{ role: 'user', parts: [{ text: 'Яка погода в Києві?' }] }],
+      tools: [{
+        functionDeclarations: [{
+          name: 'getWeather',
+          description: 'Отримати погоду для міста',
+          parameters: { type: 'object', properties: { city: { type: 'string' } }, required: ['city'] },
+        }],
+      }],
+    }),
+  }
+);
+// Відповідь: candidates[0].content.parts[0].functionCall = { name: 'getWeather', args: { city: 'Київ' } }
+```
+
+**Висновок:** Три абсолютно різні API. AI SDK дозволяє писати один код — і це головна цінність.
+
 ---
 
 ## 6.3 Кілька інструментів одночасно
