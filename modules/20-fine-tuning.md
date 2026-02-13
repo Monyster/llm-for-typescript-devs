@@ -164,6 +164,46 @@ if (status === 'succeeded') {
 
 Приклад: 1000 прикладів × 500 токенів = 500K токенів навчання ≈ **$1.50** для GPT-4o-mini.
 
+### Fine-tuning у інших провайдерів
+
+Fine-tuning — одна з областей де API **найбільш різні** між провайдерами:
+
+```typescript
+// Google Gemini — fine-tuning через Vertex AI
+// Формат даних — інший (не JSONL з messages, а спеціальний):
+// {"text_input": "Класифікуй: не можу оплатити", "output": "billing"}
+
+// Google використовує tuningJobs API:
+const tuningResponse = await fetch(
+  `https://${REGION}-aiplatform.googleapis.com/v1/projects/${PROJECT_ID}/locations/${REGION}/tuningJobs`,
+  {
+    method: 'POST',
+    headers: { 'Authorization': `Bearer ${GOOGLE_TOKEN}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      baseModel: 'gemini-2.0-flash-001',
+      supervisedTuningSpec: {
+        trainingDatasetUri: 'gs://your-bucket/training-data.jsonl',
+        hyperParameters: { epochCount: 3, learningRateMultiplier: 1.0 },
+      },
+    }),
+  }
+);
+```
+
+**Anthropic** не пропонує публічний fine-tuning API — натомість рекомендує:
+- Prompt engineering + few-shot examples (модуль 04)
+- Extended Thinking для складних задач
+- Використання Voyage AI embeddings для RAG
+
+| Аспект | OpenAI | Google Gemini | Anthropic |
+|--------|--------|---------------|-----------|
+| Fine-tuning API | ✅ Повноцінний | ✅ Через Vertex AI | ❌ Немає публічного |
+| Формат даних | JSONL (messages) | JSONL (text_input/output) | — |
+| Підтримані моделі | GPT-4o, GPT-4o-mini | Gemini Flash, Gemini Pro | — |
+| Альтернатива | — | — | Prompt engineering + RAG |
+| Мін. прикладів | 10 (рекомендовано 50+) | 100+ | — |
+| Distillation | ✅ (stored completions) | ✅ | ❌ |
+
 ---
 
 ## 20.4 Model Distillation: Дешева модель з якістю дорогої
