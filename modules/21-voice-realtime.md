@@ -286,16 +286,65 @@ async function voiceAssistant(audioInput: Buffer): Promise<Buffer> {
 
 ---
 
-## 21.6 Порівняння підходів
+## 21.6 Порівняння підходів та провайдерів
 
-| Критерій | Pipeline (STT+LLM+TTS) | OpenAI Realtime |
-|----------|------------------------|-----------------|
-| Латентність | 1-3 секунди | ~300ms |
-| Вартість | Нижча (~$0.50/5хв) | Вища (~$1.50/5хв) |
-| Контроль | Повний (кожен крок окремо) | Обмежений |
-| Переривання | Складно реалізувати | Вбудоване |
-| Провайдер-агностичність | Так (різні STT/TTS) | Тільки OpenAI |
-| Function calling | Через LLM | Вбудоване |
+### Realtime Voice APIs
+
+OpenAI Realtime — не єдиний варіант. Google має аналог:
+
+```typescript
+// Google Gemini Live API — альтернатива OpenAI Realtime
+// WebSocket-з'єднання з Gemini для двостороннього голосу
+const ws = new WebSocket(
+  `wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContent?key=${GOOGLE_KEY}`
+);
+
+ws.on('open', () => {
+  ws.send(JSON.stringify({
+    setup: {
+      model: 'models/gemini-2.0-flash-live-001',
+      generationConfig: {
+        responseModalities: ['AUDIO'],
+        speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Puck' } } },
+      },
+      tools: [{ functionDeclarations: [/* tools */] }],
+    },
+  }));
+});
+
+// Надсилаємо аудіо
+ws.send(JSON.stringify({
+  realtimeInput: { mediaChunks: [{ mimeType: 'audio/pcm', data: base64AudioChunk }] },
+}));
+```
+
+### Порівняння всіх варіантів
+
+| Критерій | Pipeline (STT+LLM+TTS) | OpenAI Realtime | Google Live API |
+|----------|------------------------|-----------------|-----------------|
+| Латентність | 1-3 секунди | ~300ms | ~300ms |
+| Вартість (5 хв) | ~$0.50 | ~$1.50 | ~$0.80 |
+| Контроль | Повний | Обмежений | Обмежений |
+| Переривання | Складно | Вбудоване | Вбудоване |
+| Function calling | Через LLM | Вбудоване | Вбудоване |
+| Провайдери | Будь-які | Тільки OpenAI | Тільки Google |
+| Відео вхід | Ні | Ні | Так (камера!) |
+
+### STT провайдери
+
+| Сервіс | Realtime | Ціна за хвилину | Українська |
+|--------|---------|-----------------|------------|
+| OpenAI Whisper | Ні (файл) | $0.006 | Так |
+| Deepgram nova-2 | Так (WebSocket) | $0.0043 | Так |
+| Google Speech chirp-2 | Так (gRPC) | $0.006 | Так |
+
+### TTS провайдери
+
+| Сервіс | Якість | Клонування голосу | Ціна (1M символів) | Українська |
+|--------|--------|------------------|-------------------|------------|
+| OpenAI TTS | Добра | Ні | $15 | З акцентом |
+| ElevenLabs | Найкраща | Так | $30 | Так |
+| Google TTS | Добра | Ні | $4 (найдешевший) | Так |
 
 ---
 
