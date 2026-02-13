@@ -240,6 +240,111 @@ function summaryPrompt(maxSentences: number, text: string) {
 
 ---
 
+## 4.5.1 Промптинг під конкретний провайдер
+
+Один і той же промпт може працювати по-різному на різних моделях. Кожен провайдер має свої "фішки":
+
+### OpenAI (GPT-4o, GPT-4o-mini)
+
+```typescript
+// OpenAI добре працює з:
+// - Чіткими numbered lists в інструкціях
+// - JSON-прикладами у промпті
+// - System prompt може бути довгим (до 4K токенів ефективно)
+
+const { text } = await generateText({
+  model: openai('gpt-4o-mini'),
+  system: `Ти класифікуєш тікети.
+Правила:
+1. Визнач категорію: billing, technical, feature, other
+2. Визнач пріоритет: low, medium, high
+3. Відповідай ТІЛЬКИ JSON: {"category": "...", "priority": "..."}`,
+  prompt: ticketText,
+});
+// OpenAI добре слідує JSON інструкціям навіть без structured output
+```
+
+### Anthropic (Claude Sonnet, Claude Haiku)
+
+```typescript
+// Claude краще працює з:
+// - XML-тегами для структури промпту (<instructions>, <context>, <output>)
+// - Prefill — почати відповідь за модель (через assistant message)
+// - Довгий контекст (200K токенів, краще "пам'ятає" початок та кінець)
+
+const { text } = await generateText({
+  model: anthropic('claude-sonnet-4-5-20250929'),
+  system: `<instructions>
+Ти класифікуєш тікети підтримки.
+Категорії: billing, technical, feature, other
+Пріоритети: low, medium, high
+</instructions>
+
+<output_format>
+Відповідай JSON: {"category": "...", "priority": "..."}
+</output_format>`,
+  messages: [
+    { role: 'user', content: ticketText },
+    // Prefill — "підказуємо" формат відповіді, Claude продовжить
+    { role: 'assistant', content: '{"category": "' },
+  ],
+});
+// Claude особливо сильний у розумінні нюансів та edge cases
+
+// Anthropic також підтримує extended thinking для складних задач:
+const { text: reasoned } = await generateText({
+  model: anthropic('claude-sonnet-4-5-20250929'),
+  providerOptions: {
+    anthropic: {
+      thinking: { type: 'enabled', budgetTokens: 5000 },  // Модель "думає" перед відповіддю
+    },
+  },
+  prompt: 'Складна задача яка потребує reasoning...',
+});
+```
+
+### Google (Gemini Flash, Gemini Pro)
+
+```typescript
+// Gemini краще працює з:
+// - Мультимодальним вводом (зображення + текст разом)
+// - Великим контекстом (до 1M токенів у Gemini Pro)
+// - Grounding через Google Search (факт-чекінг)
+
+const { text } = await generateText({
+  model: google('gemini-2.5-flash-preview-04-17'),
+  system: 'Класифікуй тікет. Категорії: billing, technical, feature, other.',
+  prompt: ticketText,
+});
+// Gemini Flash — найдешевший з "розумних" моделей, ідеальний для масових задач
+
+// Gemini з зображенням — без додаткових налаштувань
+const { text: imageAnalysis } = await generateText({
+  model: google('gemini-2.5-flash-preview-04-17'),
+  messages: [{
+    role: 'user',
+    content: [
+      { type: 'image', image: screenshotBuffer },
+      { type: 'text', text: 'Що зображено на цьому скріншоті помилки?' },
+    ],
+  }],
+});
+```
+
+### Порівняння для промпт-інженера
+
+| Аспект | OpenAI | Anthropic (Claude) | Google (Gemini) |
+|--------|--------|-------------------|-----------------|
+| Структура промпту | Numbered lists, Markdown | **XML-теги** (`<tags>`) | Простий текст |
+| Prefill відповіді | ❌ Не підтримує | ✅ Через assistant message | ❌ Не підтримує |
+| Extended thinking | ❌ (є o3, але окремо) | ✅ `thinking.budgetTokens` | ✅ `thinkingConfig` |
+| Слідування інструкціям | Відмінне | Відмінне | Добре |
+| Довгий контекст | 128K | 200K | **1M** (найбільше) |
+| Мультимодальність | Зображення, аудіо | Зображення, PDF | Зображення, відео, аудіо |
+| Найдешевша модель | GPT-4o-mini ($0.15/1M) | Claude Haiku ($0.25/1M) | Gemini Flash ($0.075/1M) |
+
+---
+
 ## 4.6 Промпт як код: версіонування та тестування
 
 В production промпти треба тримати **як код** — версіонувати, тестувати, рев'ювати:
