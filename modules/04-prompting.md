@@ -96,6 +96,236 @@ const systemPrompt = `
 
 ---
 
+## 4.2.1 XML-теги у промптах — структура яку моделі розуміють найкраще
+
+XML-теги — одна з найефективніших технік промптингу. Вони чітко розділяють різні частини промпту і допомагають моделі зрозуміти де інструкції, де дані, де приклади.
+
+### Навіщо XML-теги
+
+Без тегів — модель має сама здогадатись де закінчуються інструкції і починаються дані:
+
+```typescript
+// ❌ Без структури — все зливається
+const system = `Ти аналізуєш відгуки клієнтів. Визнач sentiment та ключові теми.
+Відповідай JSON форматом. Ось відгук для аналізу:
+Дуже задоволений покупкою! Доставка швидка, якість відмінна.
+Але пакування могло бути кращим.`;
+// Проблема: де закінчується інструкція і починається відгук?
+// Що якщо відгук містить слово "визнач" або "відповідай"?
+```
+
+З тегами — кожна частина чітко відокремлена:
+
+```typescript
+// ✅ З XML-тегами — кристально зрозуміло
+const system = `<role>Ти — аналітик клієнтських відгуків.</role>
+
+<instructions>
+Проаналізуй відгук клієнта. Для кожного відгуку визнач:
+1. Sentiment: positive, negative, mixed, neutral
+2. Ключові теми: що саме клієнт хвалить або критикує
+3. Action items: конкретні речі які можна покращити
+</instructions>
+
+<output_format>
+Відповідай виключно JSON:
+{"sentiment": "...", "topics": ["..."], "action_items": ["..."]}
+</output_format>
+
+<review>
+${customerReview}
+</review>`;
+```
+
+### Стандартні XML-теги та коли їх використовувати
+
+```typescript
+// === ПОВНИЙ ШАБЛОН ПРОМПТУ З XML-ТЕГАМИ ===
+
+const structuredPrompt = `
+<role>
+Ти — senior TypeScript code reviewer для фінтех-компанії.
+Досвід: 10+ років. Фокус: безпека, performance, чистий код.
+</role>
+
+<instructions>
+Переглянь код та надай структурований code review.
+Оціни кожну знахідку за severity: critical, warning, suggestion.
+Якщо код ідеальний — скажи це, не вигадуй проблеми.
+</instructions>
+
+<constraints>
+- Не пропонуй зміни стилю якщо вони не впливають на читабельність
+- Фокусуйся на логічних помилках та безпеці, а не на форматуванні
+- Максимум 5 знахідок, відсортованих за severity
+- Не коментуй імпорти та типи якщо вони коректні
+</constraints>
+
+<context>
+Проект: платіжний шлюз для e-commerce
+Стек: TypeScript, Express, PostgreSQL
+Цей файл обробляє webhook від Stripe
+</context>
+
+<examples>
+<example>
+<input>
+function processPayment(amount) {
+  return fetch('/api/pay', { body: amount });
+}
+</input>
+<output>
+{"findings": [
+  {"severity": "critical", "line": 1, "issue": "Параметр amount без типізації — може бути будь-яким значенням", "fix": "amount: number"},
+  {"severity": "critical", "line": 2, "issue": "fetch без error handling — якщо API недоступне, помилка не оброблена", "fix": "Додати try-catch та retry logic"}
+]}
+</output>
+</example>
+</examples>
+
+<output_format>
+Відповідай JSON: {"findings": [{"severity": "...", "line": number, "issue": "...", "fix": "..."}]}
+Якщо знахідок немає: {"findings": [], "comment": "Код виглядає добре"}
+</output_format>
+
+<code>
+${codeToReview}
+</code>
+`;
+```
+
+### Найпоширеніші теги
+
+| Тег | Призначення | Коли використовувати |
+|-----|------------|---------------------|
+| `<role>` | Хто модель (persona) | Завжди коли потрібна експертиза |
+| `<instructions>` | Що робити | Завжди (основні інструкції) |
+| `<constraints>` | Обмеження та заборони | Коли є edge cases або заборони |
+| `<context>` | Фонова інформація | RAG, бізнес-контекст, metadata |
+| `<examples>` | Few-shot приклади | Коли потрібен специфічний формат |
+| `<output_format>` | Формат відповіді | JSON, таблиці, специфічний формат |
+| `<input>` або `<data>` | Дані для обробки | Завжди для user data (відокремити від інструкцій) |
+
+### Практичний приклад: RAG з XML-тегами
+
+```typescript
+import { generateText } from 'ai';
+import { anthropic } from '@ai-sdk/anthropic';
+
+// RAG — контекст з бази знань відокремлений від інструкцій
+async function ragWithXMLTags(question: string, chunks: string[]) {
+  const context = chunks
+    .map((chunk, i) => `<source id="${i + 1}">${chunk}</source>`)
+    .join('\n');
+
+  const { text } = await generateText({
+    model: anthropic('claude-sonnet-4-5-20250929'),
+    system: `<instructions>
+Відповідай на питання користувача ВИКЛЮЧНО на основі наданих джерел.
+Якщо відповіді немає в джерелах — чесно скажи "Не знайшов інформації".
+Цитуй джерела у форматі [1], [2] тощо.
+Не вигадуй факти.
+</instructions>
+
+<sources>
+${context}
+</sources>`,
+    prompt: `<question>${question}</question>`,
+  });
+
+  return text;
+}
+```
+
+### Практичний приклад: Класифікація з fallback
+
+```typescript
+import { generateObject } from 'ai';
+import { openai } from '@ai-sdk/openai';
+import { z } from 'zod';
+
+const { object } = await generateObject({
+  model: openai('gpt-4o-mini'),
+  schema: z.object({
+    category: z.enum(['billing', 'technical', 'feature', 'complaint', 'other']),
+    confidence: z.number(),
+    reasoning: z.string(),
+  }),
+  system: `<instructions>
+Класифікуй тікет підтримки в одну з категорій.
+Якщо тікет може належати до кількох категорій — обери найбільш релевантну.
+Якщо жодна категорія не підходить — обери "other".
+</instructions>
+
+<categories>
+- billing: оплата, підписки, рахунки, повернення коштів
+- technical: баги, помилки, не працює функціонал, інтеграції
+- feature: запити на нові функції, покращення, побажання
+- complaint: скарги на сервіс, негативний досвід, незадоволення
+- other: все що не підпадає під інші категорії
+</categories>
+
+<constraints>
+- confidence від 0.0 до 1.0 — наскільки ти впевнений у класифікації
+- Якщо confidence < 0.6 — обери "other" і поясни чому в reasoning
+</constraints>`,
+  prompt: `<ticket>${ticketText}</ticket>`,
+});
+```
+
+### Вкладеність тегів — коли це корисно
+
+```typescript
+// Вкладені теги для складних структур
+const prompt = `<examples>
+  <example type="good">
+    <input>Не можу зайти в акаунт</input>
+    <output>{"category": "technical", "confidence": 0.9}</output>
+    <explanation>Проблема з входом — це технічна проблема</explanation>
+  </example>
+  <example type="ambiguous">
+    <input>Хочу повернути гроші бо продукт глючить</input>
+    <output>{"category": "billing", "confidence": 0.6}</output>
+    <explanation>Є і billing (повернення) і technical (глючить), але основний запит — повернення</explanation>
+  </example>
+</examples>`;
+```
+
+### Який провайдер найкраще працює з XML-тегами
+
+| Провайдер | Підтримка XML | Нотатки |
+|-----------|--------------|---------|
+| **Anthropic (Claude)** | Найкраща | Документація офіційно рекомендує XML-теги. Claude натренований на них — розуміє структуру та ніколи не "плутає" дані з інструкціями |
+| **OpenAI (GPT)** | Добра | Працює добре, але не настільки оптимізований під XML як Claude. Markdown headers (`###`) також ефективні |
+| **Google (Gemini)** | Добра | Працює, але Google рекомендує простіші розділювачі (markdown, `---`) |
+
+**Порада:** XML-теги працюють з усіма провайдерами, але якщо ви використовуєте Claude — вони обов'язкові для production промптів.
+
+### Anti-patterns з XML-тегами
+
+```typescript
+// ❌ Зайве — не огортайте кожне слово
+const bad = `<greeting>Привіт</greeting>, <task>проаналізуй</task> <object>цей текст</object>`;
+
+// ✅ Огортайте логічні блоки
+const good = `<instructions>Проаналізуй текст нижче</instructions>
+<text>${userText}</text>`;
+
+// ❌ Дублювання — тег і текст кажуть те ж саме
+const bad2 = `<instructions>Ось твої інструкції: ...</instructions>`;
+
+// ✅ Тег як label, вміст — суть
+const good2 = `<instructions>Класифікуй тікет. Категорії: billing, technical, other.</instructions>`;
+
+// ❌ Забагато рівнів вкладеності (>3)
+const bad3 = `<a><b><c><d>текст</d></c></b></a>`;
+
+// ✅ Максимум 2-3 рівні
+const good3 = `<examples><example><input>...</input><output>...</output></example></examples>`;
+```
+
+---
+
 ## 4.3 Техніки промптингу
 
 ### Zero-Shot — без прикладів
