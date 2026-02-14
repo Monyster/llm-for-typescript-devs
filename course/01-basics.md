@@ -281,7 +281,7 @@ const { text: claudeResult } = await generateText({
   prompt: 'Проаналізуй архітектуру цієї системи...',
   providerOptions: {
     anthropic: {
-      thinking: { type: 'enabled', budgetTokens: 10000 },  // Бюджет на "думання"
+      thinking: { type: 'enabled', budget_tokens: 10000 },  // Бюджет на "думання"
     },
   },
 });
@@ -303,12 +303,12 @@ const { text: geminiResult } = await generateText({
 | Аспект | OpenAI (o3/o4-mini) | Anthropic (Extended Thinking) | Google (Thinking) |
 |--------|-------------------|-------------------------------|-------------------|
 | Як увімкнути | Окрема модель (`o3`) | Опція до звичайної моделі | Опція до звичайної моделі |
-| Контроль бюджету | `reasoning_effort: low/medium/high` | `budgetTokens: N` (точний) | `thinkingBudget: N` |
+| Контроль бюджету | `reasoning_effort: low/medium/high` | `budget_tokens: N` (точний) | `thinkingBudget: N` |
 | Thinking видно? | Ні (приховано) | Так (в `reasoning` блоках) | Так |
 | Temperature | Не підтримує (завжди 1) | Підтримує | Підтримує |
 | Вартість thinking | Оплачується як output | Оплачується як output | Оплачується як output |
 
-**Важливо:** reasoning моделі дорожчі (токени на "роздуми" теж оплачуються) і повільніші. Використовуйте їх тільки коли якість відповіді дійсно критична.
+**Важливо:** reasoning моделі дорожчі (токени на "роздуми" теж оплачуються) і повільніші. Використовуйте їх тільки коли якість відповіді дійсно критична. Детальніше про адаптивний reasoning та production-патерни: [Reasoning Models](reasoning-models.md).
 
 ---
 

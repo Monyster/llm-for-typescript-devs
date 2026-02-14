@@ -216,6 +216,38 @@ async function callGemini() {
 
 **Саме тому AI SDK існує** — щоб ви не мали справу з цим зоопарком.
 
+### 🆕 Reasoning параметри (2025–2026)
+
+Сучасні моделі підтримують **reasoning** — окремий етап "обдумування" перед відповіддю. Це новий базовий параметр API, поряд з `temperature` і `max_tokens`:
+
+```typescript
+// OpenAI — reasoning_effort
+const response = await fetch('https://api.openai.com/v1/responses', {
+  headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+  method: 'POST',
+  body: JSON.stringify({
+    model: 'o4-mini',
+    input: 'Знайди помилку в цьому SQL запиті...',
+    reasoning: { effort: 'high' }, // 'low' | 'medium' | 'high'
+  }),
+});
+
+// Anthropic — extended thinking
+const response = await fetch('https://api.anthropic.com/v1/messages', {
+  headers: { 'x-api-key': apiKey, 'anthropic-version': '2023-06-01', 'Content-Type': 'application/json' },
+  method: 'POST',
+  body: JSON.stringify({
+    model: 'claude-sonnet-4-5-20250929',
+    max_tokens: 16000,
+    thinking: { type: 'enabled', budget_tokens: 4096 }, // мін. 1024
+    messages: [{ role: 'user', content: 'Проаналізуй цей контракт на ризики...' }],
+  }),
+});
+// Відповідь містить thinking blocks + text blocks
+```
+
+Reasoning tokens — це реальні output-токени які коштують грошей. Вмикайте тільки для складних задач (аналіз, дебаг, планування). Детальніше: [Reasoning Models](reasoning-models.md).
+
 ---
 
 ## 2.3 Те ж саме через Vercel AI SDK (набагато зручніше)

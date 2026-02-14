@@ -188,6 +188,37 @@ const { text } = await generateText({
 });
 ```
 
+### 🆕 Enterprise провайдери: Bedrock і Azure
+
+Ті ж моделі, але через enterprise cloud — для клієнтів з compliance-вимогами:
+
+```bash
+npm install @ai-sdk/amazon-bedrock  # AWS Bedrock
+npm install @ai-sdk/azure           # Azure OpenAI
+npm install @ai-sdk/google-vertex   # Google Vertex AI
+```
+
+```typescript
+import { bedrock } from '@ai-sdk/amazon-bedrock';
+import { azure } from '@ai-sdk/azure';
+
+// Claude через AWS Bedrock — дані залишаються в AWS клієнта
+const { text: bedrockResult } = await generateText({
+  model: bedrock('us.anthropic.claude-sonnet-4-5-20250929-v1:0'),
+  prompt: 'Проаналізуй...',
+});
+
+// GPT через Azure — дані залишаються в Azure клієнта
+const { text: azureResult } = await generateText({
+  model: azure('your-gpt5-deployment'),
+  prompt: 'Summarize...',
+});
+
+// Код ІДЕНТИЧНИЙ — змінюється тільки model
+```
+
+Бізнес-логіка не змінюється при переході між провайдерами. Детальніше: [Enterprise Providers](enterprise-providers.md).
+
 ### AI Gateway: 100+ моделей через один рядок
 
 AI SDK 6 інтегрується з Vercel AI Gateway для доступу до будь-якої моделі через простий ідентифікатор:
