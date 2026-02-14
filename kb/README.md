@@ -73,6 +73,7 @@ Production-операції, безпека, compliance.
 
 | Стаття | Фундамент (курс) | Коли потрібно |
 |--------|-------------------|---------------|
+| [Context Engineering Deep Dive](advanced/context-engineering-deep-dive.md) | [Course — Context Engineering](../course/context-engineering.md) | Проектуєте архітектуру AI-системи, дебажите якість, оптимізуєте контекст |
 | [Fine-tuning & Model Distillation](advanced/fine-tuning.md) | [Модуль 14: Cost](../course/14-cost-optimization.md) | Промпт-інженерія досягла стелі, потрібна специфічна поведінка |
 
 ## 💼 Use Cases & Projects
