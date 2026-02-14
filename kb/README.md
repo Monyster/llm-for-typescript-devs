@@ -77,6 +77,14 @@ Production-операції, безпека, compliance.
 | [Reasoning Models Reference](advanced/reasoning-models-reference.md) | [Course — Reasoning Models](../course/reasoning-models.md) | Порівнюєте провайдерів, обираєте reasoning-стратегію, оптимізуєте вартість |
 | [Fine-tuning & Model Distillation](advanced/fine-tuning.md) | [Модуль 14: Cost](../course/14-cost-optimization.md) | Промпт-інженерія досягла стелі, потрібна специфічна поведінка |
 
+## 🏢 Enterprise
+
+Enterprise cloud провайдери та архітектурні патерни.
+
+| Стаття | Фундамент (курс) | Коли потрібно |
+|--------|-------------------|---------------|
+| [AWS Bedrock для TypeScript](enterprise/aws-bedrock.md) | [Course — Enterprise Providers](../course/enterprise-providers.md) | Enterprise-клієнт на AWS, потрібні Knowledge Bases, Guardrails, AgentCore |
+
 ## 💼 Use Cases & Projects
 
 Production-ready кейси з повним кодом і ROI.

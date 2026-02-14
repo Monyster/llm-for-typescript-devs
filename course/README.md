@@ -55,6 +55,7 @@
 | # | Модуль | Час | Що вирішує |
 |---|--------|-----|-----------|
 | 17 | [A2A, Computer Use та передові техніки](17-advanced.md) | ~1.5 год | Agent-to-Agent, мультимодальність |
+| ★ | [Enterprise Providers: Bedrock, Azure, Vertex](enterprise-providers.md) | ~2 год | Розгортання AI в enterprise cloud (AWS, Azure, GCP) |
 | 18 | [Бізнес: Монетизація AI-знань](18-business.md) | ~1.5 год | Заробляти на AI: фріланс, SaaS, консалтинг |
 
 ---

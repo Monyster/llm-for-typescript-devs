@@ -84,7 +84,8 @@
 | 🏗️ [Frameworks](kb/frameworks/) | Mastra, Claude Code & Cursor, Edge/Local |
 | 🔒 [Operations](kb/operations/) | MCP OAuth, Rate Limiting, Compliance, Prompt Management |
 | 🧪 [Testing](kb/testing/) | Testing Patterns, Debugging LLM apps |
-| 🧠 [Advanced](kb/advanced/) | Fine-tuning & Distillation |
+| 🧠 [Advanced](kb/advanced/) | Fine-tuning, Context Engineering, Reasoning Models |
+| 🏢 [Enterprise](kb/enterprise/) | AWS Bedrock, Azure OpenAI, Enterprise Patterns |
 | 💼 [Use Cases](kb/use-cases/) | Customer Support, DevOps, E-commerce, Capstone Project |
 
 ---
