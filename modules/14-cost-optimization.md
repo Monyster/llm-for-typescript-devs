@@ -162,6 +162,110 @@ function optimizeContext(messages: CoreMessage[]): CoreMessage[] {
 }
 ```
 
+### TOON — Token-Oriented Object Notation
+
+Коли ви передаєте структуровані дані в промпт (товари, замовлення, логи, результати RAG), JSON з'їдає токени на дужки, лапки та повторення ключів. **TOON** — це компактний формат який кодує ту ж JSON-структуру, але використовує на **30-60% менше токенів**.
+
+```
+// JSON — 22,250 токенів для 60 записів аналітики
+{
+  "metrics": [
+    { "date": "2025-01-01", "views": 5715, "clicks": 211, "conversions": 28, "revenue": 7976.46 },
+    { "date": "2025-01-02", "views": 7103, "clicks": 393, "conversions": 28, "revenue": 8360.53 },
+    { "date": "2025-01-03", "views": 7248, "clicks": 378, "conversions": 24, "revenue": 3212.57 }
+  ]
+}
+
+// TOON — 9,120 токенів для тих самих даних (−59%!)
+metrics[3]{date,views,clicks,conversions,revenue}:
+  2025-01-01,5715,211,28,7976.46
+  2025-01-02,7103,393,28,8360.53
+  2025-01-03,7248,378,24,3212.57
+```
+
+**Як це працює:** TOON оголошує поля один раз у header (`{date,views,...}`), вказує кількість записів (`[3]`), і далі записує лише значення рядок за рядком — як CSV, але з підтримкою вкладеності.
+
+#### Встановлення та використання
+
+```typescript
+import { encode, decode } from '@toon-format/toon';
+
+// JSON → TOON (перед відправкою в LLM)
+const data = {
+  users: [
+    { id: 1, name: 'Alice', role: 'admin', lastLogin: '2025-01-15' },
+    { id: 2, name: 'Bob', role: 'user', lastLogin: '2025-01-14' },
+  ],
+};
+
+const toonString = encode(data);
+// users[2]{id,name,role,lastLogin}:
+//   1,Alice,admin,2025-01-15
+//   2,Bob,user,2025-01-14
+
+// Використання в промпті
+const { text } = await generateText({
+  model: openai('gpt-4o-mini'),
+  prompt: `Data is in TOON format (arrays show length and fields).
+
+\`\`\`toon
+${toonString}
+\`\`\`
+
+Task: Which users have role "admin"?`,
+});
+
+// TOON → JSON (якщо модель повертає TOON)
+const parsed = decode(modelOutput, { strict: true }); // strict: ловить помилки
+```
+
+#### Streaming великих датасетів
+
+```typescript
+import { encodeLines } from '@toon-format/toon';
+
+// Для великих масивів — потоковий encode (не тримає все в пам'яті)
+const largeData = await fetchThousandsOfRecords();
+let toonOutput = '';
+for (const line of encodeLines(largeData, { delimiter: '\t' })) {
+  toonOutput += line + '\n';
+}
+// Tab-роздільник ще ефективніший за кому (менше токенів)
+```
+
+#### Коли TOON економить найбільше
+
+| Тип даних | Економія vs JSON | Приклад |
+|-----------|-----------------|---------|
+| Однорідні масиви об'єктів | **40-60%** | Список товарів, юзерів, логів |
+| Плоскі таблиці | **35-50%** | Аналітика, метрики, CSV-подібні дані |
+| Напів-однорідні дані | **15-30%** | Мікс простих і вкладених об'єктів |
+| Глибоко вкладені об'єкти | **0-10%** | Конфігурації, дерева — тут JSON compact краще |
+
+#### Benchmarks: TOON vs JSON
+
+За результатами бенчмарків на 4 моделях (Claude Haiku, Gemini Flash, GPT-5-nano, Grok 4) і 209 питаннях:
+
+| Формат | Accuracy | Токени | Ефективність (acc/1K tok) |
+|--------|----------|--------|--------------------------|
+| **TOON** | **73.9%** | **2,744** | **26.9** |
+| JSON compact | 70.7% | 3,081 | 22.9 |
+| YAML | 69.0% | 3,719 | 18.6 |
+| JSON | 69.7% | 4,545 | 15.3 |
+| XML | 67.1% | 5,167 | 13.0 |
+
+TOON не тільки менший за JSON, але й дає **вищу accuracy** — явні `[N]` довжини та `{fields}` headers допомагають моделі краще відстежувати структуру.
+
+#### Коли НЕ використовувати TOON
+
+TOON не срібна куля. Використовуйте JSON коли:
+- Дані глибоко вкладені з мінімумом табличних масивів
+- Структура неоднорідна (кожен об'єкт має різні поля)
+- Ваш pipeline вже оптимізований під JSON (не варто мігрувати заради 10% економії)
+- Для чисто табличних даних CSV може бути ще компактнішим (але без вкладеності)
+
+Документація та playground: **https://toonformat.dev**
+
 ---
 
 ## 14.5 Калькулятор вартості
